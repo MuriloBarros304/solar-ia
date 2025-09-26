@@ -1,0 +1,92 @@
+--- Estação: dados_A304_H_2018-01-01_2025-06-30 ---
+Total de linhas (horas) no arquivo: 65712
+
+Relatório de valores nulos por coluna (sensor):
+--------------------------------------------------
+Unnamed: 16                                        |  100.00% nulos
+PRECIPITACAO TOTAL, HORARIO(mm)                    |   29.63% nulos
+UMIDADE REL. MAX. NA HORA ANT. (AUT)(%)            |   25.80% nulos
+UMIDADE RELATIVA DO AR, HORARIA(%)                 |   25.39% nulos
+UMIDADE REL. MIN. NA HORA ANT. (AUT)(%)            |   25.31% nulos
+VENTO, RAJADA MAXIMA(m/s)                          |   24.86% nulos
+VENTO, DIRECAO HORARIA (gr)(Â° (gr))               |   24.66% nulos
+VENTO, VELOCIDADE HORARIA(m/s)                     |   24.66% nulos
+PRESSAO ATMOSFERICA MIN. NA HORA ANT. (AUT)(mB)    |   24.64% nulos
+PRESSAO ATMOSFERICA MAX.NA HORA ANT. (AUT)(mB)     |   24.64% nulos
+TEMPERATURA MAXIMA NA HORA ANT. (AUT)(Â°C)         |   24.64% nulos
+TEMPERATURA MINIMA NA HORA ANT. (AUT)(Â°C)         |   24.64% nulos
+RADIACAO GLOBAL(Kj/mÂ²)                            |   24.55% nulos
+TEMPERATURA DO AR - BULBO SECO, HORARIA(Â°C)       |   24.55% nulos
+PRESSAO ATMOSFERICA AO NIVEL DA ESTACAO, HORARIA(mB) |   24.55% nulos
+Data Medicao                                       |    0.00% nulos
+Hora Medicao                                       |    0.00% nulos
+--------------------------------------------------
+--- Estação: dados_A316_H_2018-01-01_2025-06-30 ---
+Total de linhas (horas) no arquivo: 65712
+
+Relatório de valores nulos por coluna (sensor):
+--------------------------------------------------
+Unnamed: 16                                        |  100.00% nulos
+PRECIPITACAO TOTAL, HORARIO(mm)                    |   37.11% nulos
+VENTO, RAJADA MAXIMA(m/s)                          |   31.16% nulos
+UMIDADE REL. MIN. NA HORA ANT. (AUT)(%)            |   30.93% nulos
+PRESSAO ATMOSFERICA MAX.NA HORA ANT. (AUT)(mB)     |   30.93% nulos
+UMIDADE REL. MAX. NA HORA ANT. (AUT)(%)            |   30.93% nulos
+TEMPERATURA MINIMA NA HORA ANT. (AUT)(Â°C)         |   30.93% nulos
+TEMPERATURA MAXIMA NA HORA ANT. (AUT)(Â°C)         |   30.93% nulos
+PRESSAO ATMOSFERICA MIN. NA HORA ANT. (AUT)(mB)    |   30.93% nulos
+VENTO, VELOCIDADE HORARIA(m/s)                     |   30.72% nulos
+VENTO, DIRECAO HORARIA (gr)(Â° (gr))               |   30.72% nulos
+PRESSAO ATMOSFERICA AO NIVEL DA ESTACAO, HORARIA(mB) |   30.72% nulos
+RADIACAO GLOBAL(Kj/mÂ²)                            |   30.72% nulos
+UMIDADE RELATIVA DO AR, HORARIA(%)                 |   30.72% nulos
+TEMPERATURA DO AR - BULBO SECO, HORARIA(Â°C)       |   30.72% nulos
+Data Medicao                                       |    0.00% nulos
+Hora Medicao                                       |    0.00% nulos
+--------------------------------------------------
+--- Estação: dados_A372_H_2018-01-01_2025-06-30 ---
+Total de linhas (horas) no arquivo: 65712
+
+Relatório de valores nulos por coluna (sensor):
+--------------------------------------------------
+Unnamed: 16                                        |  100.00% nulos
+RADIACAO GLOBAL(Kj/mÂ²)                            |   41.08% nulos
+PRECIPITACAO TOTAL, HORARIO(mm)                    |   36.28% nulos
+VENTO, RAJADA MAXIMA(m/s)                          |   33.55% nulos
+UMIDADE REL. MIN. NA HORA ANT. (AUT)(%)            |   33.54% nulos
+UMIDADE REL. MAX. NA HORA ANT. (AUT)(%)            |   33.54% nulos
+PRESSAO ATMOSFERICA MIN. NA HORA ANT. (AUT)(mB)    |   33.47% nulos
+PRESSAO ATMOSFERICA MAX.NA HORA ANT. (AUT)(mB)     |   33.47% nulos
+TEMPERATURA MINIMA NA HORA ANT. (AUT)(Â°C)         |   33.46% nulos
+TEMPERATURA MAXIMA NA HORA ANT. (AUT)(Â°C)         |   33.46% nulos
+UMIDADE RELATIVA DO AR, HORARIA(%)                 |   33.27% nulos
+VENTO, VELOCIDADE HORARIA(m/s)                     |   33.22% nulos
+VENTO, DIRECAO HORARIA (gr)(Â° (gr))               |   33.22% nulos
+PRESSAO ATMOSFERICA AO NIVEL DA ESTACAO, HORARIA(mB) |   33.21% nulos
+TEMPERATURA DO AR - BULBO SECO, HORARIA(Â°C)       |   33.21% nulos
+Data Medicao                                       |    0.00% nulos
+Hora Medicao                                       |    0.00% nulos
+--------------------------------------------------
+--- Estação: dados_A340_H_2018-01-01_2025-06-30 ---
+Total de linhas (horas) no arquivo: 65712
+
+Relatório de valores nulos por coluna (sensor):
+--------------------------------------------------
+Unnamed: 16                                        |  100.00% nulos
+PRECIPITACAO TOTAL, HORARIO(mm)                    |   45.41% nulos
+RADIACAO GLOBAL(Kj/mÂ²)                            |   36.13% nulos
+UMIDADE REL. MIN. NA HORA ANT. (AUT)(%)            |   36.09% nulos
+UMIDADE REL. MAX. NA HORA ANT. (AUT)(%)            |   36.06% nulos
+UMIDADE RELATIVA DO AR, HORARIA(%)                 |   36.03% nulos
+TEMPERATURA MAXIMA NA HORA ANT. (AUT)(Â°C)         |   34.48% nulos
+VENTO, RAJADA MAXIMA(m/s)                          |   34.48% nulos
+PRESSAO ATMOSFERICA MAX.NA HORA ANT. (AUT)(mB)     |   34.48% nulos
+PRESSAO ATMOSFERICA MIN. NA HORA ANT. (AUT)(mB)    |   34.48% nulos
+TEMPERATURA MINIMA NA HORA ANT. (AUT)(Â°C)         |   34.48% nulos
+VENTO, VELOCIDADE HORARIA(m/s)                     |   34.47% nulos
+VENTO, DIRECAO HORARIA (gr)(Â° (gr))               |   34.47% nulos
+TEMPERATURA DO AR - BULBO SECO, HORARIA(Â°C)       |   34.47% nulos
+PRESSAO ATMOSFERICA AO NIVEL DA ESTACAO, HORARIA(mB) |   34.47% nulos
+Data Medicao                                       |    0.00% nulos
+Hora Medicao                                       |    0.00% nulos
+--------------------------------------------------
