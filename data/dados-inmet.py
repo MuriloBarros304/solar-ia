@@ -38,30 +38,9 @@ def analisar_estacao(caminho_arquivo):
         # Remove linhas onde o timestamp não pôde ser criado (dados corrompidos de data/hora)
         df.dropna(subset=['timestamp'], inplace=True)
         df.set_index('timestamp', inplace=True)
-        
-        # 2. ANÁLISE 1: LACUNAS TEMPORAIS (LINHAS FALTANTES)
-        print("\n[Análise 1: Lacunas Temporais (Horas Inteiras Faltando)]")
-        data_inicio = df.index.min()
-        data_fim = df.index.max()
 
-        if pd.isna(data_inicio):
-            print("AVISO: Não foi possível ler datas neste arquivo. Pulando.")
-            print("-" * 50 + "\n")
-            return
-
-        indice_esperado = pd.date_range(start=data_inicio, end=data_fim, freq='H')
-        registros_esperados = len(indice_esperado)
-        registros_reais = len(df)
-        registros_faltantes = registros_esperados - registros_reais
-        percentual_lacunas = (registros_faltantes / registros_esperados) * 100 if registros_esperados > 0 else 0
-
-        print(f"Período de dados: de {data_inicio.strftime('%Y-%m-%d')} a {data_fim.strftime('%Y-%m-%d')}")
-        print(f"Total de horas no período: {registros_esperados}")
-        print(f"Registros encontrados: {registros_reais}")
-        print(f"Percentual de LACUNAS (linhas faltantes): {percentual_lacunas:.2f}%")
-
-        # 3. ANÁLISE 2: VALORES NULOS INTERNOS (CÉLULAS VAZIAS)
-        print("\n[Análise 2: Valores Nulos Internos (Dados Faltando Dentro das Linhas)]")
+        # 2. VALORES NULOS INTERNOS (CÉLULAS VAZIAS)
+        print("\n[Valores Nulos Internos (Dados Faltando Dentro das Linhas)]")
         
         # Seleciona apenas as colunas de medição (excluindo as de data/hora originais)
         colunas_medicao = df.columns.drop([COLUNA_DATA, COLUNA_HORA], errors='ignore')

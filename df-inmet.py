@@ -15,12 +15,11 @@ ARQUIVOS_ESTACOES = [
 ]
 
 # Dicionário com as coordenadas de cada estação.
-# VERIFIQUE SE ESTES VALORES ESTÃO CORRETOS PARA AS SUAS ESTAÇÕES.
 COORDENADAS_ESTACOES = {
     'A304': {'latitude': -5.83722221, 'longitude': -35.20805555}, # Natal
-    'A316': {'latitude': -6.4674999, 'longitude': 37.08499999}, # Caicó
-    'A372': {'latitude': -5.5349999, 'longitude': -36.87222221}, # Macau
-    'A340': {'latitude': -5.6266666, 'longitude': -37.815}, # Apodi
+    'A316': {'latitude': -6.4674999, 'longitude': -37.08499999},  # Caicó
+    'A372': {'latitude': -5.5349999, 'longitude': -36.87222221},  # Macau
+    'A340': {'latitude': -5.6266666, 'longitude': -37.815},       # Apodi
 }
 
 NOMES_COLUNAS_INMET = [
@@ -32,12 +31,12 @@ NOMES_COLUNAS_INMET = [
     'descartar'
 ]
 
-COLUNAS_FINAIS = [
+COLUNAS_FINAIS_INMET = [
     'codigo_estacao', 'latitude', 'longitude', 'temp_ar', 'umidade_rel',
     'pressao_atm_estacao', 'vento_vel', 'vento_dir', 'precipitacao'
 ]
 
-# --- 2. PROCESSAMENTO E UNIFICAÇÃO (ATUALIZADO) ---
+# --- 2. PROCESSAMENTO E UNIFICAÇÃO ---
 
 lista_de_dataframes = []
 print("Iniciando a limpeza e unificação dos dados...\n")
@@ -48,7 +47,6 @@ for nome_arquivo in ARQUIVOS_ESTACOES:
     
     print(f"Processando estação: {codigo_estacao}...")
 
-    # MUDANÇA PRINCIPAL: Ignoramos o cabeçalho do arquivo e atribuímos nossos próprios nomes
     df_estacao = pd.read_csv(
         caminho_completo,
         sep=';',
@@ -74,7 +72,7 @@ for nome_arquivo in ARQUIVOS_ESTACOES:
     
     # Seleciona apenas as colunas finais
     # O reindex garante que a ordem e a presença das colunas estejam corretas
-    df_processado = df_estacao.reindex(columns=COLUNAS_FINAIS)
+    df_processado = df_estacao.reindex(columns=COLUNAS_FINAIS_INMET)
     
     lista_de_dataframes.append(df_processado)
 
