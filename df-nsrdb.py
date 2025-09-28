@@ -22,7 +22,7 @@ MAPEAMENTO_COLUNAS_NSRDB = {
     'Temperature': 'temp_ar_nsrdb',
     'Relative Humidity': 'umidade_rel_nsrdb',
     'Wind Speed': 'vento_vel_nsrdb',
-    'Cloud Type': 'cloud_type_nsrdb', # Nomeado para clareza
+    'Cloud Type': 'tipo_nuvem_nsrdb', # Nomeado para clareza
     'Pressure': 'pressao_nsrdb'
 }
 
@@ -36,7 +36,7 @@ COLUNAS_FINAIS_NSRDB = [
     'temp_ar_nsrdb',
     'umidade_rel_nsrdb',
     'vento_vel_nsrdb',
-    'cloud_type_nsrdb',
+    'tipo_nuvem_nsrdb',
     'pressao_nsrdb'
 ]
 
@@ -65,14 +65,14 @@ for codigo_estacao, coords in COORDENADAS_ESTACOES.items():
     for nome_arquivo_ano in sorted(os.listdir(caminho_pasta_estacao)):
         if nome_arquivo_ano.endswith('.csv'):
             caminho_completo_ano = os.path.join(caminho_pasta_estacao, nome_arquivo_ano)
-            print(f"  Lendo arquivo: {nome_arquivo_ano}...")
+            print(f"Lendo arquivo: {nome_arquivo_ano}...")
             
             # Carrega o CSV do ano específico
             try:
                 df_ano = pd.read_csv(caminho_completo_ano, skiprows=2)
                 lista_dfs_anuais.append(df_ano)
             except Exception as e:
-                print(f"    ERRO ao ler o arquivo {nome_arquivo_ano}: {e}")
+                print(f"ERRO ao ler o arquivo {nome_arquivo_ano}: {e}")
 
     # Se a lista de dataframes anuais não estiver vazia, continue o processamento
     if lista_dfs_anuais:
@@ -83,7 +83,6 @@ for codigo_estacao, coords in COORDENADAS_ESTACOES.items():
         
         # 1. Criação do Timestamp e tratamento de fuso horário
         df_nsrdb['timestamp'] = pd.to_datetime(df_nsrdb[['Year', 'Month', 'Day', 'Hour', 'Minute']])
-        df_nsrdb['timestamp'] = df_nsrdb['timestamp'].dt.tz_localize('UTC')
         df_nsrdb.set_index('timestamp', inplace=True)
         
         # 2. Renomeia e seleciona as colunas
@@ -108,3 +107,4 @@ print("Amostra do DataFrame Mestre (NSRDB):")
 print(df_master_nsrdb.head())
 print("\nInformações do DataFrame Mestre (NSRDB):")
 df_master_nsrdb.info()
+df_master_nsrdb.to_parquet('df_master_nsrdb.parquet')

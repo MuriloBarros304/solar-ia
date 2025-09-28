@@ -32,8 +32,15 @@ NOMES_COLUNAS_INMET = [
 ]
 
 COLUNAS_FINAIS_INMET = [
-    'codigo_estacao', 'latitude', 'longitude', 'temp_ar', 'umidade_rel',
-    'pressao_atm_estacao', 'vento_vel', 'vento_dir', 'precipitacao'
+    'codigo_estacao',
+    'latitude',
+    'longitude',
+    'temp_ar',
+    'umidade_rel',
+    'pressao_atm_estacao',
+    'vento_vel',
+    'vento_dir',
+    'precipitacao'
 ]
 
 # --- 2. PROCESSAMENTO E UNIFICAÇÃO ---
@@ -84,3 +91,4 @@ print("Amostra do DataFrame Mestre (INMET):")
 print(df_master_inmet.head())
 print("\nInformações do DataFrame Mestre (INMET):")
 df_master_inmet.info()
+df_master_inmet.to_parquet('df_master_inmet.parquet')
