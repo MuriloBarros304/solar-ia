@@ -2,8 +2,8 @@ import pandas as pd
 
 
 try:
-    df_inmet = pd.read_parquet('df_master_inmet.parquet')
-    df_nsrdb = pd.read_parquet('df_master_nsrdb.parquet')
+    df_inmet = pd.read_parquet('data/df_inmet.parquet')
+    df_nsrdb = pd.read_parquet('data/df_nsrdb.parquet')
     print("DataFrames carregados com sucesso.")
 except FileNotFoundError as e:
     print(f"ERRO: Arquivo não encontrado. Certifique-se de executar os scripts 'df-inmet.py' e 'df-nsrdb.py' primeiro.")
@@ -58,5 +58,5 @@ df_final.info()
 
 # Salva o dataset final, pronto para ser usado pelos modelos
 print("\nSalvando DataFrame final em 'dataset_completo.parquet'...")
-df_final.to_parquet('dataset_completo.parquet')
+df_final.to_parquet('data/dataframe.parquet')
 print("Salvo com sucesso!")
