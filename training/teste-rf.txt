@@ -1,0 +1,26 @@
+Treinamento concluído em 7.17 minutos.
+
+Realizando previsões no conjunto de validação...
+[Parallel(n_jobs=4)]: Using backend ThreadingBackend with 4 concurrent workers.
+[Parallel(n_jobs=4)]: Done  33 tasks      | elapsed:    0.2s
+[Parallel(n_jobs=4)]: Done 100 out of 100 | elapsed:    0.6s finished
+
+Avaliando o desempenho do modelo...
+
+==================================================
+      RESULTADOS DE DESEMPENHO DO MODELO BASELINE (RandomForest)
+==================================================
+
+Target: GHI
+  - Erro Médio Absoluto (MAE): 20.54 W/m²
+  - Raiz do Erro Quadrático Médio (RMSE): 55.72 W/m²
+--------------------------------------------------
+Target: DNI
+  - Erro Médio Absoluto (MAE): 30.25 W/m²
+  - Raiz do Erro Quadrático Médio (RMSE): 71.71 W/m²
+==================================================
+
+Para Contexto:
+  - GHI médio (durante o dia) no set de validação: 520.94 W/m²
+  - DNI médio (durante o dia) no set de validação: 566.17 W/m²
+==================================================

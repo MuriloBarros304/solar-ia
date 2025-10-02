@@ -3,6 +3,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 import pandas as pd
 import numpy as np
 import time
+import joblib
 
 print("Carregando os conjuntos de treino e validação...")
 try:
@@ -73,3 +74,8 @@ print("\nPara Contexto:")
 print(f"  - GHI médio (durante o dia) no set de validação: {ghi_medio_dia:.2f} W/m²")
 print(f"  - DNI médio (durante o dia) no set de validação: {dni_medio_dia:.2f} W/m²")
 print("="*50)
+
+# Salvar o modelo treinado para uso futuro
+print("\nSalvando o modelo RandomForest treinado...")
+joblib.dump(rf_model, 'training/random_forest_model.joblib')
+print("Modelo salvo como 'random_forest_model.joblib'")

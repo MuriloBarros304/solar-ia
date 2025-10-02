@@ -1,6 +1,10 @@
 import pandas as pd
 import numpy as np
 
+HORA_INICIO_DIA = 7
+HORA_FIM_DIA = 17
+LIMITE_GHI_ANOMALO = 10
+
 try:
     df_inmet = pd.read_parquet('data/df_inmet.parquet')
     df_nsrdb = pd.read_parquet('data/df_nsrdb.parquet')
@@ -10,7 +14,33 @@ except FileNotFoundError as e:
     print(e)
     exit()
 
+# Tratamento de anomalias nos dados de irradiação solar --------------
+is_daylight = (df_nsrdb.index.hour >= HORA_INICIO_DIA) & (df_nsrdb.index.hour <= HORA_FIM_DIA) # type: ignore
+is_low_ghi = (df_nsrdb['ghi'] < LIMITE_GHI_ANOMALO)
+anomalies_idx = df_nsrdb[is_daylight & is_low_ghi].index
+print(f"Encontrados {len(anomalies_idx.unique())} timestamps únicos com anomalias para corrigir.")
+
+# 2. Marcar os valores de irradiação anômalos como NaN
+colunas_para_corrigir = ['ghi', 'dni', 'dhi']
+if not anomalies_idx.empty:
+    df_nsrdb.loc[anomalies_idx, colunas_para_corrigir] = np.nan
+
+# 3. Preencher TODOS os novos buracos com interpolação baseada no tempo
+df_nsrdb[colunas_para_corrigir] = df_nsrdb[colunas_para_corrigir].interpolate(method='time')
+
 df_final = df_inmet.join(df_nsrdb, lsuffix='_inmet', rsuffix='_nsrdb')
+
+# Lógica compacta para remover duplicados por grupo (timestamp, codigo_estacao) --------------
+# 1. Transforma o índice 'timestamp' em coluna.
+# 2. Agrupa por 'timestamp' e 'codigo_estacao'.
+# 3. Calcula a média de todas as outras colunas numéricas para cada grupo (colapsando os duplicados).
+# 4. Reseta o índice para transformar 'timestamp' e 'codigo_estacao' de volta em colunas.
+# 5. Define 'timestamp' como o novo índice.
+df_final = (df_final.reset_index()
+                    .groupby(['timestamp', 'codigo_estacao'])
+                    .mean()
+                    .reset_index()
+                    .set_index('timestamp'))
 
 # Lista de colunas do INMET para preencher e suas correspondentes da NSRDB
 colunas_para_imputar = {
@@ -81,16 +111,18 @@ window_size = 3
 for coluna in colunas_rolling:
     # Média Móvel
     nome_media = f'{coluna}_media_movel_{window_size}h'
-    df_final[nome_media] = df_final.groupby('codigo_estacao')[coluna].transform(lambda x: x.rolling(window=window_size).mean())
-    
+    df_final[nome_media] = df_final.groupby('codigo_estacao')[coluna].transform(
+        lambda x: x.shift(1).rolling(window=window_size).mean()
+    )
+
     # Desvio Padrão Móvel
     nome_std = f'{coluna}_std_movel_{window_size}h'
-    df_final[nome_std] = df_final.groupby('codigo_estacao')[coluna].transform(lambda x: x.rolling(window=window_size).std())
+    df_final[nome_std] = df_final.groupby('codigo_estacao')[coluna].transform(
+        lambda x: x.shift(1).rolling(window=window_size).std()
+    )
 
 # Remove quaisquer linhas que ainda possam ter nulos após a criação das novas features
-print(f"Tamanho do DataFrame antes de remover NaNs: {len(df_final)}")
 df_final.dropna(inplace=True)
-print(f"Tamanho do DataFrame depois de remover NaNs: {len(df_final)}")
 
 print("Amostra do DataFrame Final e Completo:")
 print(df_final.head())
@@ -119,7 +151,7 @@ print(f"Registros de Validação: {len(val_df)} ({len(val_df) / len(df_final) * 
 print(f"Registros de Teste: {len(test_df)} ({len(test_df) / len(df_final) * 100:.1f}%)")
 
 # Nossos alvos são 'ghi' e 'dni'. Todas as outras colunas são features.
-FEATURES = [col for col in df_final.columns if col not in ['ghi', 'dni', 'codigo_estacao']]
+FEATURES = [col for col in df_final.columns if col not in ['ghi', 'dni', 'codigo_estacao', 'dhi']]
 TARGETS = ['ghi', 'dni']
 
 X_train = train_df[FEATURES]

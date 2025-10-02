@@ -1,0 +1,17 @@
+==================================================
+      RESULTADOS DE DESEMPENHO DO MODELO BASELINE (XGBoost)
+==================================================
+
+Target: GHI
+  - Erro Médio Absoluto (MAE): 21.04 W/m²
+  - Raiz do Erro Quadrático Médio (RMSE): 53.60 W/m²
+--------------------------------------------------
+Target: DNI
+  - Erro Médio Absoluto (MAE): 30.19 W/m²
+  - Raiz do Erro Quadrático Médio (RMSE): 68.61 W/m²
+==================================================
+
+Para Contexto:
+  - GHI médio (durante o dia) no set de validação: 520.94 W/m²
+  - DNI médio (durante o dia) no set de validação: 566.17 W/m²
+==================================================
