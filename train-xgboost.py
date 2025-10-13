@@ -48,7 +48,7 @@ print("\nRealizando previsões no conjunto de validação...")
 predictions_ghi = xgb_model_ghi.predict(X_val)
 predictions_dni = xgb_model_dni.predict(X_val)
 
-# O resultado 'predictions' é um array numpy. Vamos convertê-lo para um DataFrame para facilitar a análise.
+# O resultado 'predictions' é um array numpy. Convertê-lo para um DataFrame para facilitar a análise.
 pred_df = pd.DataFrame({
     'ghi': predictions_ghi,
     'dni': predictions_dni
@@ -79,6 +79,18 @@ print(f"Target: DNI")
 print(f"  - Erro Médio Absoluto (MAE): {mae_dni:.2f} W/m²")
 print(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_dni:.2f} W/m²")
 print("="*50)
+
+with open('predict/xgb_performance.txt', 'w') as f:
+    f.write("Desempenho do Modelo XGBoost:\n")
+    f.write("="*50 + "\n")
+    f.write(f"Target: GHI\n")
+    f.write(f"  - Erro Médio Absoluto (MAE): {mae_ghi:.2f} W/m²\n")
+    f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_ghi:.2f} W/m²\n")
+    f.write("-"*50 + "\n")
+    f.write(f"Target: DNI\n")
+    f.write(f"  - Erro Médio Absoluto (MAE): {mae_dni:.2f} W/m²\n")
+    f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_dni:.2f} W/m²\n")
+    f.write("="*50 + "\n")
 
 # --- CONTEXTUALIZANDO O ERRO ---
 # Para sabermos se um erro de X W/m² é bom ou ruim, vamos ver a média dos valores reais.

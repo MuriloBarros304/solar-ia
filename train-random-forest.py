@@ -64,6 +64,18 @@ print(f"  - Erro Médio Absoluto (MAE): {mae_dni:.2f} W/m²")
 print(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_dni:.2f} W/m²")
 print("="*50)
 
+with open('predict/rf_performance.txt', 'w') as f:
+    f.write("Desempenho do Modelo RandomForest:\n")
+    f.write("="*50 + "\n")
+    f.write(f"Target: GHI\n")
+    f.write(f"  - Erro Médio Absoluto (MAE): {mae_ghi:.2f} W/m²\n")
+    f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_ghi:.2f} W/m²\n")
+    f.write("-"*50 + "\n")
+    f.write(f"Target: DNI\n")
+    f.write(f"  - Erro Médio Absoluto (MAE): {mae_dni:.2f} W/m²\n")
+    f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_dni:.2f} W/m²\n")
+    f.write("="*50 + "\n")
+
 # --- CONTEXTUALIZANDO O ERRO ---
 # Para sabermos se um erro de X W/m² é bom ou ruim, vamos ver a média dos valores reais.
 # Calculamos a média apenas durante o dia (quando a irradiação é > 0).

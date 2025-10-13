@@ -4,7 +4,6 @@ import joblib
 import numpy as np
 
 # --- 1. CONFIGURAÇÃO ---
-print("Iniciando o script de visualização de previsões...")
 
 # Caminhos para os modelos e dados
 RF_MODEL_PATH = 'training/random_forest_model.joblib'
