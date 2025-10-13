@@ -47,8 +47,6 @@ def calculate_and_save_metrics(y_true, y_pred, model_name):
         f.write(f"  - GHI médio (durante o dia) no set de teste: {ghi_medio_dia:.2f} W/m²\n")
         f.write(f"  - DNI médio (durante o dia) no set de teste: {dni_medio_dia:.2f} W/m²\n")
 
-# (Substitua sua função original por esta)
-
 def plot_feature_importance(model, feature_names, model_name):
     """Plota e SALVA a importância das features para modelos baseados em árvores."""
     if not hasattr(model, 'feature_importances_'):
