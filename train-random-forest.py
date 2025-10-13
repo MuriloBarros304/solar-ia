@@ -38,55 +38,6 @@ predictions = rf_model.predict(X_val)
 # O resultado 'predictions' é um array numpy. Vamos convertê-lo para um DataFrame para facilitar a análise.
 pred_df = pd.DataFrame(predictions, index=y_val.index, columns=y_val.columns)
 
-print("\nAvaliando o desempenho do modelo...")
-
-# Como temos duas saídas (GHI e DNI), vamos calcular o erro para cada uma.
-# MAE (Mean Absolute Error): É o erro médio, na mesma unidade do alvo (W/m²). Fácil de interpretar.
-# RMSE (Root Mean Squared Error): Penaliza erros maiores mais fortemente.
-
-# Avaliação para GHI
-mae_ghi = mean_absolute_error(y_val['ghi'], pred_df['ghi'])
-rmse_ghi = np.sqrt(mean_squared_error(y_val['ghi'], pred_df['ghi']))
-
-# Avaliação para DNI
-mae_dni = mean_absolute_error(y_val['dni'], pred_df['dni'])
-rmse_dni = np.sqrt(mean_squared_error(y_val['dni'], pred_df['dni']))
-
-print("\n" + "="*50)
-print("      RESULTADOS DE DESEMPENHO DO MODELO BASELINE (RandomForest)")
-print("="*50)
-print(f"\nTarget: GHI")
-print(f"  - Erro Médio Absoluto (MAE): {mae_ghi:.2f} W/m²")
-print(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_ghi:.2f} W/m²")
-print("-"*50)
-print(f"Target: DNI")
-print(f"  - Erro Médio Absoluto (MAE): {mae_dni:.2f} W/m²")
-print(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_dni:.2f} W/m²")
-print("="*50)
-
-with open('predict/rf_performance.txt', 'w') as f:
-    f.write("Desempenho do Modelo RandomForest:\n")
-    f.write("="*50 + "\n")
-    f.write(f"Target: GHI\n")
-    f.write(f"  - Erro Médio Absoluto (MAE): {mae_ghi:.2f} W/m²\n")
-    f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_ghi:.2f} W/m²\n")
-    f.write("-"*50 + "\n")
-    f.write(f"Target: DNI\n")
-    f.write(f"  - Erro Médio Absoluto (MAE): {mae_dni:.2f} W/m²\n")
-    f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_dni:.2f} W/m²\n")
-    f.write("="*50 + "\n")
-
-# --- CONTEXTUALIZANDO O ERRO ---
-# Para sabermos se um erro de X W/m² é bom ou ruim, vamos ver a média dos valores reais.
-# Calculamos a média apenas durante o dia (quando a irradiação é > 0).
-ghi_medio_dia = y_val[y_val['ghi'] > 0]['ghi'].mean()
-dni_medio_dia = y_val[y_val['dni'] > 0]['dni'].mean()
-
-print("\nPara Contexto:")
-print(f"  - GHI médio (durante o dia) no set de validação: {ghi_medio_dia:.2f} W/m²")
-print(f"  - DNI médio (durante o dia) no set de validação: {dni_medio_dia:.2f} W/m²")
-print("="*50)
-
 # Salvar o modelo treinado para uso futuro
 print("\nSalvando o modelo RandomForest treinado...")
 joblib.dump(rf_model, 'training/random_forest_model.joblib')
