@@ -1,0 +1,81 @@
+Encontrados 615 timestamps únicos com anomalias para corrigir.
+  - Coluna 'temp_ar': 75052 valores preenchidos. (5738 nulos restantes)
+  - Coluna 'umidade_rel': 76158 valores preenchidos. (6257 nulos restantes)
+  - Coluna 'vento_vel': 75136 valores preenchidos. (5740 nulos restantes)
+  - Coluna 'pressao_atm_estacao': 75056 valores preenchidos. (5740 nulos restantes)
+/home/murilo/Área de trabalho/GitHub/solar-ia/dataframe.py:74: FutureWarning: DataFrame.interpolate with object dtype is deprecated and will raise in a future version. Call obj.infer_objects(copy=False) before interpolating instead.
+  df_final.interpolate(method='time', limit_direction='both', inplace=True)
+Amostra do DataFrame Final e Completo:
+                    codigo_estacao  latitude_inmet  ...  ghi_media_movel_3h  ghi_std_movel_3h
+timestamp                                           ...                                      
+2018-01-02 00:00:00           A304       -5.837222  ...                 0.0               0.0
+2018-01-02 00:00:00           A316       -6.467500  ...                 0.0               0.0
+2018-01-02 00:00:00           A340       -5.626667  ...                 0.0               0.0
+2018-01-02 00:00:00           A372       -5.535000  ...                 0.0               0.0
+2018-01-02 01:00:00           A304       -5.837222  ...                 0.0               0.0
+
+[5 rows x 39 columns]
+
+Informações do DataFrame Final e Completo:
+<class 'pandas.core.frame.DataFrame'>
+DatetimeIndex: 262752 entries, 2018-01-02 00:00:00 to 2025-06-30 23:00:00
+Data columns (total 39 columns):
+ #   Column                              Non-Null Count   Dtype  
+---  ------                              --------------   -----  
+ 0   codigo_estacao                      262752 non-null  object 
+ 1   latitude_inmet                      262752 non-null  float64
+ 2   longitude_inmet                     262752 non-null  float64
+ 3   temp_ar                             262752 non-null  float64
+ 4   umidade_rel                         262752 non-null  float64
+ 5   pressao_atm_estacao                 262752 non-null  float64
+ 6   vento_vel                           262752 non-null  float64
+ 7   vento_dir                           262752 non-null  float64
+ 8   precipitacao                        262752 non-null  float64
+ 9   ghi                                 262752 non-null  float64
+ 10  dni                                 262752 non-null  float64
+ 11  dhi                                 262752 non-null  float64
+ 12  tipo_nuvem_nsrdb                    262752 non-null  float64
+ 13  hora_sin                            262752 non-null  float64
+ 14  hora_cos                            262752 non-null  float64
+ 15  dia_ano_sin                         262752 non-null  float64
+ 16  dia_ano_cos                         262752 non-null  float64
+ 17  temp_ar_lag1h                       262752 non-null  float64
+ 18  temp_ar_lag24h                      262752 non-null  float64
+ 19  umidade_rel_lag3h                   262752 non-null  float64
+ 20  pressao_atm_estacao_lag4h           262752 non-null  float64
+ 21  dhi_lag1h                           262752 non-null  float64
+ 22  dhi_lag24h                          262752 non-null  float64
+ 23  dni_lag1h                           262752 non-null  float64
+ 24  dni_lag24h                          262752 non-null  float64
+ 25  ghi_lag1h                           262752 non-null  float64
+ 26  ghi_lag24h                          262752 non-null  float64
+ 27  temp_ar_media_movel_3h              262752 non-null  float64
+ 28  temp_ar_std_movel_3h                262752 non-null  float64
+ 29  umidade_rel_media_movel_3h          262752 non-null  float64
+ 30  umidade_rel_std_movel_3h            262752 non-null  float64
+ 31  pressao_atm_estacao_media_movel_3h  262752 non-null  float64
+ 32  pressao_atm_estacao_std_movel_3h    262752 non-null  float64
+ 33  dhi_media_movel_3h                  262752 non-null  float64
+ 34  dhi_std_movel_3h                    262752 non-null  float64
+ 35  dni_media_movel_3h                  262752 non-null  float64
+ 36  dni_std_movel_3h                    262752 non-null  float64
+ 37  ghi_media_movel_3h                  262752 non-null  float64
+ 38  ghi_std_movel_3h                    262752 non-null  float64
+dtypes: float64(38), object(1)
+memory usage: 80.2+ MB
+Salvo com sucesso!
+
+--- Iniciando a Separação dos Dados (Treino, Validação, Teste) ---
+Dataset finalizado. Período total: de 2018-01-02 00:00:00 a 2024-12-31 23:00:00
+
+Registros de Treino: 175200 (71.4%)
+Registros de Validação: 35040 (14.3%)
+Registros de Teste: 35136 (14.3%)
+
+Separação em X (features) e y (alvos) concluída.
+Shape de X_train: (175200, 35)
+Shape de y_train: (175200, 2)
+Shape de X_val: (35040, 35)
+Shape de y_val: (35040, 2)
+Shape de X_test: (35136, 35)
+Shape de y_test: (35136, 2)

@@ -18,20 +18,26 @@ except FileNotFoundError:
 
 # XGBoost pode treinar um modelo para cada alvo separadamente.
 xgb_model_ghi = xgb.XGBRegressor(
-    n_estimators=1000,         # Começamos com um número alto de árvores
+    n_estimators=800,          # Começamos com um número alto de árvores
     learning_rate=0.05,        # Taxa de aprendizado
     n_jobs=-1,                 # Usa todos os núcleos da CPU
     random_state=42,
-    early_stopping_rounds=50   # Para o treino se não houver melhora em 50 rodadas
+    early_stopping_rounds=50,  # Para o treino se não houver melhora em 50 rodadas
+    max_depth=9,               # Profundidade máxima das árvores
+    subsample=0.9,             # Amostra 90% dos dados para cada árvore
+    colsample_bytree=0.93      # Amostra 80% das features para cada árvore
 )
 
 # Faremos o mesmo para o DNI
 xgb_model_dni = xgb.XGBRegressor(
-    n_estimators=1000,
-    learning_rate=0.05,
-    n_jobs=-1,
+    n_estimators=800,          # Começamos com um número alto de árvores
+    learning_rate=0.05,        # Taxa de aprendizado
+    n_jobs=-1,                 # Usa todos os núcleos da CPU
     random_state=42,
-    early_stopping_rounds=50
+    early_stopping_rounds=50,  # Para o treino se não houver melhora em 50 rodadas
+    max_depth=9,               # Profundidade máxima das árvores
+    subsample=0.9,             # Amostra 90% dos dados para cada árvore
+    colsample_bytree=0.93      # Amostra 80% das features para cada árvore
 )
 
 print("\nIniciando o treinamento do modelo... (Isso pode levar alguns minutos)")
