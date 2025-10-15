@@ -1,12 +1,17 @@
+===========================================================================
 Desempenho do Modelo XGBoost:
 ==================================================
 Target: GHI
-  - Erro Médio Absoluto (MAE): 16.05 W/m²
-  - Raiz do Erro Quadrático Médio (RMSE): 36.73 W/m²
+  - Erro Médio Absoluto (MAE): 19.17 W/m²
+  - Raiz do Erro Quadrático Médio (RMSE): 43.10 W/m²
+  - Coeficiente de determinação (R²): 0.9840
+
 --------------------------------------------------
 Target: DNI
-  - Erro Médio Absoluto (MAE): 31.61 W/m²
-  - Raiz do Erro Quadrático Médio (RMSE): 65.72 W/m²
+  - Erro Médio Absoluto (MAE): 40.11 W/m²
+  - Raiz do Erro Quadrático Médio (RMSE): 76.43 W/m²
+  - Coeficiente de determinação (R²): 0.9464
+
 ==================================================
 
 Para Contexto:

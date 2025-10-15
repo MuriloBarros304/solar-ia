@@ -1,3 +1,8 @@
+"""
+Módulo para carregar, limpar, transformar e salvar o DataFrame final.
+Também separa o DataFrame em conjuntos de treino, validação e teste.
+"""
+
 import pandas as pd
 import numpy as np
 
@@ -94,9 +99,6 @@ lags_a_criar = {
     'temp_ar': [1, 24],
     'umidade_rel': [3],
     'pressao_atm_estacao': [4],
-    'dhi': [1, 24],
-    'dni': [1, 24],
-    'ghi': [1, 24]
 }
 
 for coluna, lista_lags in lags_a_criar.items():
@@ -105,7 +107,7 @@ for coluna, lista_lags in lags_a_criar.items():
         df_final[nome_nova_coluna] = df_final.groupby('codigo_estacao')[coluna].shift(lag)
 
 # Features de Janela Móvel (Rolling)
-colunas_rolling = ['temp_ar', 'umidade_rel', 'pressao_atm_estacao', 'dhi', 'dni', 'ghi']
+colunas_rolling = ['temp_ar', 'umidade_rel', 'pressao_atm_estacao']
 window_size = 3
 
 for coluna in colunas_rolling:
