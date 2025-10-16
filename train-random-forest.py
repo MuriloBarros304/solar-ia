@@ -1,7 +1,5 @@
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.metrics import mean_absolute_error, mean_squared_error
 import pandas as pd
-import numpy as np
 import time
 import joblib
 
@@ -17,10 +15,15 @@ except FileNotFoundError:
     exit()
 
 rf_model = RandomForestRegressor(
-    n_estimators=100,      # Começaremos com 100 árvores. Um bom ponto de partida.
-    n_jobs=-1,             # MUITO IMPORTANTE: Usa todos os núcleos da sua CPU para acelerar o treino.
-    random_state=42,       # Garante que os resultados sejam reproduzíveis.
-    verbose=2              # Mostra o progresso do treinamento árvore por árvore.
+    n_estimators=355,    # Número de árvores na floresta (ajustado após tuning)
+    n_jobs=-1,           # Usa todos os núcleos da CPU
+    random_state=42,     # Garante que os resultados sejam reproduzíveis.
+    verbose=2,           # Mostra o progresso do treinamento
+    max_depth=21,        # Profundidade máxima das árvores
+    max_features=0.82,   # Cada árvore verá 82% das features
+    max_samples=0.87,    # Cada árvore verá 87% dos dados de treino (similar ao subsample do XGBoost)
+    min_samples_split=2, # Mínimo de amostras para dividir um nó
+    min_samples_leaf=1   # Mínimo de amostras em um nó folha (para regularização)
 )
 
 print("\nIniciando o treinamento do modelo... (Isso pode levar alguns minutos)")
