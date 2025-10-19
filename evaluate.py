@@ -102,6 +102,7 @@ def main():
     print("Gerando previsões no conjunto de teste...")
     pred_rf_raw = rf_model.predict(X_test)
     pred_rf = pd.DataFrame(pred_rf_raw, index=y_test.index, columns=y_test.columns)
+    pred_rf.to_parquet('data/pred_rf_val.parquet') # 
 
     pred_xgb_ghi = xgb_model_ghi.predict(X_test)
     pred_xgb_dni = xgb_model_dni.predict(X_test)
@@ -141,7 +142,7 @@ def main():
 
     # SALVA O GRÁFICO DE SÉRIE TEMPORAL
     plt.savefig('predict/comparacao_series_temporais.png', dpi=300, bbox_inches='tight')
-    print("- Gráfico de séries temporais salvo como 'comparacao_series_temporais.png'")
+    print("- Gráfico de séries temporais salvo como 'predict/comparacao_series_temporais.png'")
     plt.close(fig_ts) # Fecha a figura para liberar memória
     
     # Gráfico de Dispersão (Real vs. Previsto)
@@ -169,7 +170,7 @@ def main():
 
     # SALVA O GRÁFICO DE DISPERSÃO
     plt.savefig('predict/analise_dispersao_erro.png', dpi=300, bbox_inches='tight')
-    print("- Gráfico de dispersão salvo como 'analise_dispersao_erro.png'")
+    print("- Gráfico de dispersão salvo como 'predict/analise_dispersao_erro.png'")
     plt.close(fig_scatter) # Fecha a figura para liberar memória
     
     # Gráficos de Importância das Features

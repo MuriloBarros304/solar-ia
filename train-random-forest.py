@@ -44,4 +44,4 @@ pred_df = pd.DataFrame(predictions, index=y_val.index, columns=y_val.columns)
 # Salvar o modelo treinado para uso futuro
 print("\nSalvando o modelo RandomForest treinado...")
 joblib.dump(rf_model, 'training/random_forest_model.joblib')
-print("Modelo salvo como 'random_forest_model.joblib'")
+print("Modelo salvo como 'training/random_forest_model.joblib'")
