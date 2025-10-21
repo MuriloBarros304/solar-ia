@@ -40,13 +40,11 @@ model, feature_names = load_model_and_features()
 if model is None or feature_names is None:
     st.stop()
 
-# --- NOVO: INICIALIZAÇÃO DO SESSION STATE PARA AS COORDENADAS ---
 if 'lat' not in st.session_state:
     st.session_state.lat = -5.7944 # Ponto inicial do marcador
     st.session_state.lon = -36.5667 # Ponto inicial do marcador
     st.session_state.map_center = [-5.7944, -36.5667] # Centro inicial do mapa
 
-# --- 2. PAINEL DE CONTROLE NA SIDEBAR ---
 st.sidebar.title("🛰️ Painel de Controle Global")
 st.sidebar.header("Localização Geográfica")
 st.sidebar.markdown("Selecione no mapa na primeira aba ou ajuste manualmente aqui.")
@@ -64,21 +62,18 @@ user_cloud_type = st.sidebar.slider(
     help="Um valor de 0 representa céu limpo, enquanto 8 representa céu totalmente encoberto (escala em Oktas)."
 )
 
-# --- 3. INTERFACE DO USUÁRIO COM ABAS ---
 st.title("☀️ Plataforma de Análise e Previsão de Irradiação Solar (GHI)")
-# Nova ordem das abas
 tab_mapa, tab_pontual, tab_diaria, tab_anual = st.tabs([
     "📍 Mapa Interativo", "Previsão Pontual", "Previsão Diária", "Análise Anual"
 ])
 
 # ==============================================================================
-# NOVA ABA: MAPA INTERATIVO (COM VALIDAÇÃO DE ÁREA)
+# ABA 1: MAPA INTERATIVO
 # ==============================================================================
 with tab_mapa:
     st.header("Selecione a Coordenada no Mapa do RN")
     st.markdown("Clique em qualquer ponto dentro da área destacada para definir a latitude e a longitude que serão usadas em todas as simulações.")
 
-    # --- NOVO: Definindo o retângulo (bounding box) para o RN ---
     # Coordenadas aproximadas dos pontos extremos do estado
     RN_BOUNDS = {
         "lat_min": -6.98, "lat_max": -4.82,
@@ -119,7 +114,6 @@ with tab_mapa:
         clicked_lat = map_data["last_clicked"]["lat"]
         clicked_lon = map_data["last_clicked"]["lng"]
         
-        # --- NOVO: Lógica de validação do clique ---
         is_lat_valid = RN_BOUNDS["lat_min"] <= clicked_lat <= RN_BOUNDS["lat_max"]
         is_lon_valid = RN_BOUNDS["lon_min"] <= clicked_lon <= RN_BOUNDS["lon_max"]
 
@@ -134,7 +128,7 @@ with tab_mapa:
             st.warning("📍 Ponto fora da área de cobertura. Por favor, clique dentro dos limites do Rio Grande do Norte.")
 
 # ==============================================================================
-# ABA 1: PREVISÃO PONTUAL (COM TODOS OS INPUTS)
+# ABA 2: PREVISÃO PONTUAL
 # ==============================================================================
 with tab_pontual:
     st.header("Previsão para uma Hora Específica")
@@ -146,12 +140,13 @@ with tab_pontual:
         
         c1, c2 = st.columns(2)
         with c1:
-            data = st.date_input("Data da Previsão", datetime.now())
+            data = st.date_input("Data da Previsão", datetime(2023, 10, 29), format="DD/MM/YYYY")
         with c2:
-            hora = st.time_input("Hora da Previsão (HH:MM)", datetime.now().time())
+            hora = st.time_input("Hora da Previsão (HH:MM)", datetime(2023, 10, 29).replace(hour=12, minute=0).time())
         
         temp_ar = st.slider("Temperatura do Ar (°C)", 18.0, 40.0, 28.0)
         umidade_rel = st.slider("Umidade Relativa (%)", 20.0, 100.0, 70.0)
+        precipitacao = st.slider("Precipitação (mm)", 0.0, 50.0, 0.0)
 
     timestamp = datetime.combine(data, hora)
 
@@ -163,14 +158,14 @@ with tab_pontual:
     input_data['dia_ano_cos'] = np.cos(2 * np.pi * timestamp.timetuple().tm_yday / 365.25)
 
     input_data.update({
-        'latitude_inmet': lat, 
-        'longitude_inmet': lon, 
+        'latitude_inmet': lat,
+        'longitude_inmet': lon,
         'temp_ar': temp_ar,
-        'umidade_rel': umidade_rel, 
-        'pressao_atm_estacao': 1010.0, 
+        'umidade_rel': umidade_rel,
+        'pressao_atm_estacao': 1010.0,
         'vento_vel': user_wind_speed,
-        'vento_dir': user_wind_dir, 
-        'precipitacao': 0.0, 
+        'vento_dir': user_wind_dir,
+        'precipitacao': precipitacao,
         'tipo_nuvem': float(user_cloud_type),
     })
 
@@ -190,18 +185,20 @@ with tab_pontual:
             st.success("Condição: Céu limpo / Sol forte")
 
 # ==============================================================================
-# ABA 2: PREVISÃO DIÁRIA (USANDO INPUTS GLOBAIS)
+# ABA 3: PREVISÃO DIÁRIA
 # ==============================================================================
 with tab_diaria:
     st.header("Simulação da Curva de GHI para um Dia Inteiro")
-    st.markdown("Use a **barra lateral** para definir a localização e condições de base (vento, nuvens). Depois, ajuste a data e as condições de temperatura/umidade abaixo.")
+    st.markdown("Use os parâmetros geográficos e meteorológicos da **barra lateral** e defina a temperatura e umidade ao meio-dia para gerar a previsão hora a hora.")
 
     col_dia_1, col_dia_2 = st.columns([1, 2])
     
     with col_dia_1:
-        data_simulacao = st.date_input("Data para Simulação", datetime(2023, 7, 15), key="sim_date")
+        data_simulacao = st.date_input("Data para Simulação", datetime(2023, 10, 29), key="sim_date", format="DD/MM/YYYY")
         temp_meio_dia = st.slider("Temp. ao Meio-Dia (°C)", 25.0, 42.0, 32.0)
-        umidade_meio_dia = st.slider("Umidade ao Meio-Dia (%)", 20.0, 90.0, 50.0)
+        umidade_meio_dia = st.slider("Umidade ao Meio-Dia (%)", 20.0, 100.0, 60.0)
+        precipitacao_dia = st.slider("Precipitação Diária (mm)", 0.0, 50.0, 0.0)
+        pressao_atm_dia = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0)
         
         if st.button("Gerar Previsão Diária", type="primary"):
             def simulate_hourly_variation(daily_value, peak_hour=12, min_factor=0.8):
@@ -225,10 +222,10 @@ with tab_diaria:
                         'longitude_inmet': lon,
                         'temp_ar': temp_horaria[h],
                         'umidade_rel': umidade_horaria[h],
-                        'pressao_atm_estacao': 1010.0,
+                        'pressao_atm_estacao': pressao_atm_dia,
                         'vento_vel': user_wind_speed,
                         'vento_dir': user_wind_dir,
-                        'precipitacao': 0.0,
+                        'precipitacao': precipitacao_dia,
                         'tipo_nuvem': float(user_cloud_type),
                     }
                     input_df_hora = pd.DataFrame([input_data_hora])[feature_names]
@@ -250,7 +247,7 @@ with tab_diaria:
                     st.line_chart(data=df_plot, color=['#E6521F', '#FCEF91'], height=400, use_container_width=True)
 
 # ==============================================================================
-# ABA 3: ANÁLISE ANUAL (USANDO INPUTS GLOBAIS)
+# ABA 3: ANÁLISE ANUAL
 # ==============================================================================
 with tab_anual:
     st.header("Análise de Desempenho e Simulação Anual")
@@ -279,6 +276,8 @@ with tab_anual:
         # Sempre criar os sliders para garantir que user_temp e user_humidity sejam vinculados
         user_temp = st.slider("Temperatura Média Anual (°C)", 20.0, 35.0, default_temp)
         user_humidity = st.slider("Umidade Relativa Média Anual (%)", 40.0, 90.0, default_humidity)
+        pressao_atm_media = st.slider("Pressão Atmosférica Média Estimada (hPa)", 980.0, 1050.0, 1012.0)
+        precipitacao_media = st.slider("Precipitação Média Anual (mm)", 0.0, 2000.0, 800.0)
 
     if st.button(f"Gerar Simulação para {future_year}", type="primary"):
         with st.spinner(f"Simulando todo o ano de {future_year}..."):
@@ -296,8 +295,8 @@ with tab_anual:
             df_future['vento_vel'] = user_wind_speed
             df_future['vento_dir'] = user_wind_dir
             df_future['tipo_nuvem'] = float(user_cloud_type)
-            df_future['pressao_atm_estacao'] = 1012.0
-            df_future['precipitacao'] = 0.0
+            df_future['pressao_atm_estacao'] = pressao_atm_media
+            df_future['precipitacao'] = precipitacao_media / 8760.0  # Distribui a precipitação anual igualmente por hora
             
             df_future_final = df_future[feature_names]
             future_preds = pd.DataFrame(model.predict(df_future_final), index=df_future_final.index, columns=['ghi', 'dni'])
