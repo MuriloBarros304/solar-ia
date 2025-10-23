@@ -85,11 +85,18 @@ with tab_mapa:
         st.session_state.lat = lat
     if lon != st.session_state.lon:
         st.session_state.lon = lon
+    if 'df_plot_diaria' not in st.session_state:
+        st.session_state.df_plot_diaria = pd.DataFrame()
+    if 'real_features_diaria' not in st.session_state:
+        st.session_state.real_features_diaria = None
+    if 'real_target_diaria' not in st.session_state:
+        st.session_state.real_target_diaria = None
+    if 'last_sim_date' not in st.session_state:
+        st.session_state.last_sim_date = None
 
     # Cria o objeto do mapa com Folium
     m = folium.Map(location=st.session_state.map_center, zoom_start=8, min_lat=-6.98, max_lat=-4.82, min_lon=-38.58, max_lon=-34.98, min_zoom=7, max_zoom=14)
     
-    # --- NOVO: Adiciona o retângulo visual no mapa ---
     folium.Rectangle(
         bounds=[[RN_BOUNDS["lat_min"], RN_BOUNDS["lon_min"]], [RN_BOUNDS["lat_max"], RN_BOUNDS["lon_max"]]],
         color='#ff7800',
@@ -126,6 +133,10 @@ with tab_mapa:
         else:
             # Se o clique for fora da área, exibe um aviso
             st.warning("📍 Ponto fora da área de cobertura. Por favor, clique dentro dos limites do Rio Grande do Norte.")
+    st.header("Sobre o projeto")
+    st.markdown("""
+    Esta plataforma foi desenvolvida para fornecer previsões precisas de irradiação geral horizontal (GHI) e irradiação direta normal (DNI) no estado do Rio Grande do Norte, Brasil. Utilizando um modelo de Random Forest treinado com dados históricos de estações meteorológicas locais, o sistema permite simulações personalizadas com base em condições climáticas específicas e localização geográfica.
+    """)
 
 # ==============================================================================
 # ABA 2: PREVISÃO PONTUAL
@@ -170,16 +181,19 @@ with tab_pontual:
     })
 
     input_df = pd.DataFrame([input_data])[feature_names]
-    prediction = model.predict(input_df)[0][0] 
+    ghi_prediction = model.predict(input_df)[0][0] # GHI
+    dni_prediction = model.predict(input_df)[0][1] # DNI
+
     
     with col2:
         st.subheader("Resultado da Previsão")
-        st.metric(label="GHI Previsto", value=f"{prediction:.2f} W/m²")
-        if prediction < 10:
+        st.metric(label="GHI Previsto", value=f"{ghi_prediction:.2f} W/m²")
+        st.metric(label="DNI Previsto", value=f"{dni_prediction:.2f} W/m²")
+        if ghi_prediction < 10:
             st.info("Condição: Noite / Céu muito encoberto")
-        elif prediction < 500:
+        elif ghi_prediction < 600:
             st.info("Condição: Nublado / Sol fraco")
-        elif prediction < 750:
+        elif ghi_prediction < 800:
             st.info("Condição: Céu com nuvens esparsas")
         else:
             st.success("Condição: Céu limpo / Sol forte")
@@ -188,7 +202,7 @@ with tab_pontual:
 # ABA 3: PREVISÃO DIÁRIA
 # ==============================================================================
 with tab_diaria:
-    st.header("Simulação da Curva de GHI para um Dia Inteiro")
+    st.header("Simulação da Curva de GHI e DNI para um Dia Inteiro")
     st.markdown("Use os parâmetros geográficos e meteorológicos da **barra lateral** e defina a temperatura e umidade ao meio-dia para gerar a previsão hora a hora.")
 
     col_dia_1, col_dia_2 = st.columns([1, 2])
@@ -199,52 +213,163 @@ with tab_diaria:
         umidade_meio_dia = st.slider("Umidade ao Meio-Dia (%)", 20.0, 100.0, 60.0)
         precipitacao_dia = st.slider("Precipitação Diária (mm)", 0.0, 50.0, 0.0)
         pressao_atm_dia = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0)
-        
+        target_radio = st.radio("Selecione o alvo da previsão:", ('GHI', 'DNI'), index=0, key='target_radio')
+
+        # --- LÓGICA DE PREPARAÇÃO DE DADOS REAIS (SEMPRE ATIVA) ---
+        # Esta lógica agora é executada toda vez que o script roda,
+        # e só recalcula se a data de simulação for alterada.
+        if data_simulacao != st.session_state.last_sim_date:
+            st.session_state.last_sim_date = data_simulacao
+            st.session_state.real_features_diaria = None  # Reseta os dados
+            st.session_state.real_target_diaria = None  # Reseta os dados
+            
+            if y_val is not None and data_simulacao.year == 2023:
+                start_date = pd.to_datetime(data_simulacao)
+                end_date = start_date + pd.Timedelta(days=1)
+
+                # 1. Prepara dados de TARGET (GHI/DNI) reais
+                real_data_day_target = y_val[(y_val.index >= start_date) & (y_val.index < end_date)]
+                if not real_data_day_target.empty:
+                    st.session_state.real_target_diaria = real_data_day_target.resample('h').mean().rename(columns={
+                        'ghi': 'GHI Real', 'dni': 'DNI Real'
+                    })
+
+                # 2. Prepara dados de FEATURES reais
+                if X_val is not None:
+                    real_data_day_features = X_val[(X_val.index >= start_date) & (X_val.index < end_date)]
+                    if not real_data_day_features.empty:
+                        st.session_state.real_features_diaria = real_data_day_features.resample('h').mean()
+                else:
+                    # Se não há dados de validação carregados, garante que não há erro e mantém None
+                    st.session_state.real_features_diaria = None
+            
+            # Limpa o gráfico de simulação antigo se a data mudar
+            st.session_state.df_plot_diaria = pd.DataFrame()
+
+
         if st.button("Gerar Previsão Diária", type="primary"):
+            # O botão agora SÓ gera a simulação e salva no session_state
+            
             def simulate_hourly_variation(daily_value, peak_hour=12, min_factor=0.8):
                 hourly_values = [daily_value * (min_factor + (1 - min_factor) * max(0, np.sin((h - (peak_hour - 6)) * np.pi / 12))) for h in range(24)]
                 return hourly_values
 
             temp_horaria = simulate_hourly_variation(temp_meio_dia)
             umidade_horaria = simulate_hourly_variation(umidade_meio_dia, peak_hour=5, min_factor=0.9)
-
             timestamps_dia = [datetime.combine(data_simulacao, time(h)) for h in range(24)]
             predictions_dia = []
-            
+
             with st.spinner("Gerando previsão hora a hora..."):
                 for h, timestamp_hora in enumerate(timestamps_dia):
                     input_data_hora = {
-                        'hora_sin': np.sin(2 * np.pi * h / 24.0),
-                        'hora_cos': np.cos(2 * np.pi * h / 24.0),
+                        'hora_sin': np.sin(2 * np.pi * h / 24.0), 'hora_cos': np.cos(2 * np.pi * h / 24.0),
                         'dia_ano_sin': np.sin(2 * np.pi * timestamp_hora.timetuple().tm_yday / 365.25),
                         'dia_ano_cos': np.cos(2 * np.pi * timestamp_hora.timetuple().tm_yday / 365.25),
-                        'latitude_inmet': lat,
-                        'longitude_inmet': lon,
-                        'temp_ar': temp_horaria[h],
-                        'umidade_rel': umidade_horaria[h],
-                        'pressao_atm_estacao': pressao_atm_dia,
-                        'vento_vel': user_wind_speed,
-                        'vento_dir': user_wind_dir,
-                        'precipitacao': precipitacao_dia,
-                        'tipo_nuvem': float(user_cloud_type),
+                        'latitude_inmet': lat, 'longitude_inmet': lon, 'temp_ar': temp_horaria[h],
+                        'umidade_rel': umidade_horaria[h], 'pressao_atm_estacao': pressao_atm_dia,
+                        'vento_vel': user_wind_speed, 'vento_dir': user_wind_dir,
+                        'precipitacao': precipitacao_dia, 'tipo_nuvem': float(user_cloud_type),
                     }
                     input_df_hora = pd.DataFrame([input_data_hora])[feature_names]
-                    prediction_hora = max(0, model.predict(input_df_hora)[0][0])
+                    prediction_tuple = model.predict(input_df_hora)[0]
+                    prediction_hora = max(0, prediction_tuple[0] if target_radio == 'GHI' else prediction_tuple[1])
                     predictions_dia.append(prediction_hora)
 
-            df_previsao_dia = pd.DataFrame({'GHI Previsto': predictions_dia}, index=pd.to_datetime(timestamps_dia))
-            
-            df_plot = df_previsao_dia
-            if y_val is not None:
-                if data_simulacao.year == 2023:
-                    start_date, end_date = pd.to_datetime(data_simulacao), pd.to_datetime(data_simulacao) + pd.Timedelta(days=1)
-                    real_data_day = y_val[(y_val.index >= start_date) & (y_val.index < end_date)]
-                    if not real_data_day.empty:
-                        real_data_day_mean = real_data_day.resample('h').mean().rename(columns={'ghi': 'GHI Real'})
-                        df_plot = df_previsao_dia.join(real_data_day_mean['GHI Real'])
+            df_previsao_dia = pd.DataFrame(
+                {f"{target_radio} Previsto": predictions_dia}, 
+                index=pd.to_datetime(timestamps_dia)
+            )
 
-                with col_dia_2:
-                    st.line_chart(data=df_plot, color=['#E6521F', '#FCEF91'], height=400, use_container_width=True)
+            df_plot = df_previsao_dia
+            
+            # Junta com os dados reais (que já estão no session_state)
+            if st.session_state.real_target_diaria is not None:
+                real_column_name = f"{target_radio} Real"
+                if real_column_name in st.session_state.real_target_diaria.columns:
+                    df_plot = df_previsao_dia.join(st.session_state.real_target_diaria[real_column_name])
+            
+            # Salva o DataFrame do gráfico no session_state
+            st.session_state.df_plot_diaria = df_plot
+
+            
+    # --- LÓGICA DE EXIBIÇÃO (SEMPRE ATIVA) ---
+    # Esta seção está fora do "if st.button" e é desenhada em toda re-execução.
+    with col_dia_2:
+        st.subheader(f"Resultado da Simulação - {target_radio}")
+
+        # 1. Desenha o gráfico de simulação se ele existir no session_state
+        if not st.session_state.df_plot_diaria.empty:
+            df_plot = st.session_state.df_plot_diaria
+            y_label_text = f"{target_radio} (W/m²)"
+            color_map = {'GHI': "#F87B1B", 'DNI': '#E6521F'}
+            colors_to_use = []
+            
+            if f"{target_radio} Previsto" in df_plot.columns:
+                colors_to_use.append(color_map.get(target_radio, "#FB9E3A"))
+            if f"{target_radio} Real" in df_plot.columns:
+                colors_to_use.append("#FCEF91")
+
+            if not colors_to_use:
+                 colors_to_use = color_map.get(target_radio, "#EA2F14")
+            
+            st.line_chart(
+                data=df_plot,
+                color=colors_to_use,
+                height=400,
+                x_label="Hora",
+                y_label=y_label_text
+            )
+        else:
+            # Mensagem inicial antes do usuário clicar no botão
+            st.info("Clique em 'Gerar Previsão Diária' para ver a simulação.")
+
+        # 2. Desenha o Explorador de Features se os dados existirem no session_state
+        if st.session_state.real_features_diaria is not None and not st.session_state.real_features_diaria.empty:
+            st.markdown("---")
+            st.subheader("Dados Médios Reais (2023)")
+            st.markdown("Use o slider abaixo para explorar as condições meteorológicas reais médias registradas pelas estações durante o dia selecionado.")
+            
+            real_data_features_mean = st.session_state.real_features_diaria
+            # Garante que o índice é um DatetimeIndex antes de acessar .hour
+            dt_index = pd.DatetimeIndex(real_data_features_mean.index)
+            daylight_hours = sorted({int(h) for h in dt_index.hour if 6 <= h <= 18})
+            
+            if daylight_hours:
+                selected_hour = st.slider(
+                    "Selecione uma hora:",
+                    min_value=min(daylight_hours),
+                    max_value=max(daylight_hours),
+                    value=12 if 12 in daylight_hours else min(daylight_hours),
+                    format="%02d:00",
+                    key="explorer_slider" # Adiciona uma chave para estabilidade
+                )
+                try:
+                    # Usa o DatetimeIndex para criar a máscara de hora
+                    dt_index = pd.DatetimeIndex(real_data_features_mean.index)
+                    mask = dt_index.hour == selected_hour
+                    features_at_hour = real_data_features_mean[mask].iloc[0]
+                    st.write(f"Condições médias reais às **{selected_hour:02d}:00**:")
+                    c1, c2, c3 = st.columns(3)
+                    with c1:
+                        st.metric(label="Temp. Ar (°C)", value=f"{features_at_hour.get('temp_ar', 'N/A'):.2f}")
+                        st.metric(label="Vel. Vento (m/s)", value=f"{features_at_hour.get('vento_vel', 'N/A'):.2f}")
+                    with c2:
+                        st.metric(label="Umidade Rel. (%)", value=f"{features_at_hour.get('umidade_rel', 'N/A'):.2f}")
+                        st.metric(label="Dir. Vento (°)", value=f"{features_at_hour.get('vento_dir', 'N/A'):.0f}")
+                    with c3:
+                        st.metric(label="Pressão (hPa)", value=f"{features_at_hour.get('pressao_atm_estacao', 'N/A'):.2f}")
+                        st.metric(label="Tipo de Nuvem", value=f"{features_at_hour.get('tipo_nuvem', 'N/A'):.0f}")
+                
+                except (IndexError, KeyError):
+                    st.info("Não há dados de features diurnas para esta hora selecionada.")
+            else:
+                st.info("Não há dados de features diurnas para este dia.")
+        
+        # Se não for 2023, exibe uma mensagem
+        elif data_simulacao.year != 2023:
+             st.markdown("---")
+             st.info("Selecione um dia em 2023 para comparar com os dados reais e explorar as features.")
+
 
 # ==============================================================================
 # ABA 3: ANÁLISE ANUAL
@@ -257,10 +382,10 @@ with tab_anual:
         if X_val is not None and y_val is not None:
             pred_rf_val = pd.DataFrame(model.predict(X_val[feature_names]), index=y_val.index, columns=['ghi', 'dni'])
             df_monthly = pd.DataFrame({
-                'GHI Real (Média)': y_val['ghi'].resample('M').mean(),
-                'GHI Previsto (RF)': pred_rf_val['ghi'].resample('M').mean()
+                'GHI Real (Média)': y_val['ghi'].resample('ME').mean(),
+                'GHI Previsto (RF)': pred_rf_val['ghi'].resample('ME').mean()
             })
-            st.line_chart(data=df_monthly, height=400, color=['#E6521F', '#FCEF91'], use_container_width=True)
+            st.line_chart(data=df_monthly, height=400, color=['#E6521F', '#FCEF91'], x_label="Data", y_label="GHI (W/m²)") # type: ignore
     
     st.markdown("---")
     st.subheader("Simulação para um Ano Futuro")
