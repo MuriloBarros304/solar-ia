@@ -6,8 +6,8 @@ HORA_FIM_DIA = 17
 LIMITE_GHI_ANOMALO = 10
 
 try:
-    df_inmet = pd.read_parquet('data/df_inmet.parquet')
-    df_nsrdb = pd.read_parquet('data/df_nsrdb.parquet')
+    df_inmet = pd.read_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/df_inmet.parquet')
+    df_nsrdb = pd.read_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/df_nsrdb.parquet')
     print("DataFrames carregados com sucesso.")
 except FileNotFoundError as e:
     print(f"ERRO: Arquivo não encontrado. Certifique-se de executar os scripts 'df-inmet.py' e 'df-nsrdb.py' primeiro.")
@@ -130,7 +130,7 @@ print("\nInformações do DataFrame Final e Completo:")
 df_final.info()
 
 # Salva o dataset final, pronto para ser usado pelos modelos
-df_final.to_parquet('data/dataframe.parquet')
+df_final.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/dataframe.parquet')
 print("Salvo com sucesso!")
 
 # Separação do dataframe final em conjuntos de treino, validação e teste -------
@@ -171,9 +171,9 @@ print(f"Shape de y_val: {y_val.shape}")
 print(f"Shape de X_test: {X_test.shape}")
 print(f"Shape de y_test: {y_test.shape}")
 
-X_train.to_parquet('data/X_train.parquet')
-y_train.to_parquet('data/y_train.parquet')
-X_val.to_parquet('data/X_val.parquet')
-y_val.to_parquet('data/y_val.parquet')
-X_test.to_parquet('data/X_test.parquet')
-y_test.to_parquet('data/y_test.parquet')
+X_train.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/X_train.parquet')
+y_train.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/y_train.parquet')
+X_val.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/X_val.parquet')
+y_val.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/y_val.parquet')
+X_test.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/X_test.parquet')
+y_test.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/y_test.parquet')

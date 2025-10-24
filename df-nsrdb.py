@@ -4,7 +4,7 @@ import os
 # --- 1. CONFIGURAÇÃO ---
 
 # Pasta raiz onde as subpastas das estações (a304, a316...) estão localizadas
-PASTA_DADOS_NSRDB = '/home/murilo/Área de trabalho/GitHub/solar-ia/data/nsrdb'
+PASTA_DADOS_NSRDB = '/Users/User/Documents/IA - Solar/solar-ia/data/nsrdb'
 
 # Dicionário de coordenadas. Os códigos (chaves) devem corresponder aos nomes das subpastas em minúsculo.
 COORDENADAS_ESTACOES = {
@@ -107,4 +107,4 @@ print("Amostra do DataFrame Mestre (NSRDB):")
 print(df_master_nsrdb.head())
 print("\nInformações do DataFrame Mestre (NSRDB):")
 df_master_nsrdb.info()
-df_master_nsrdb.to_parquet('data/df_nsrdb.parquet')
+df_master_nsrdb.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/df_nsrdb.parquet')

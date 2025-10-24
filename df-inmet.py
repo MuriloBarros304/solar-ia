@@ -4,7 +4,7 @@ import os
 # --- 1. CONFIGURAÇÃO ---
 
 # Pasta onde estão os arquivos CSV brutos do INMET
-PASTA_DOS_DADOS = '/home/murilo/Área de trabalho/GitHub/solar-ia/data/inmet'
+PASTA_DOS_DADOS = '/Users/User/Documents/IA - Solar/solar-ia/data/inmet'
 
 # Lista dos arquivos das estações que decidimos usar (nossas melhores candidatas)
 ARQUIVOS_ESTACOES = [
@@ -91,4 +91,4 @@ print("Amostra do DataFrame Mestre (INMET):")
 print(df_master_inmet.head())
 print("\nInformações do DataFrame Mestre (INMET):")
 df_master_inmet.info()
-df_master_inmet.to_parquet('data/df_inmet.parquet')
+df_master_inmet.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/df_inmet.parquet')
