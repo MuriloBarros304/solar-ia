@@ -17,8 +17,8 @@ st.set_page_config(
 def load_model_and_features():
     """Carrega o modelo RandomForest e a lista de nomes das features."""
     try:
-        model = joblib.load('training/random_forest_model.joblib') 
-        features = joblib.load('training/model_features.joblib')
+        model = joblib.load('/Users/User/Documents/IA - Solar/solar-ia/training/random_forest_model.joblib') 
+        features = joblib.load('/Users/User/Documents/IA - Solar/solar-ia/training/model_features.joblib')
         return model, features
     except FileNotFoundError:
         st.error("ERRO CRÍTICO: Arquivos do modelo ('random_forest_model.joblib' ou 'model_features.joblib') não encontrados na pasta 'training/'. Execute os scripts de treino primeiro.")
