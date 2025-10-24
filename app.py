@@ -17,12 +17,14 @@ st.set_page_config(
 def load_model_and_features():
     """Carrega o modelo RandomForest e a lista de nomes das features."""
     try:
-        model = joblib.load('/Users/User/Documents/IA - Solar/solar-ia/training/random_forest_model.joblib') 
-        features = joblib.load('/Users/User/Documents/IA - Solar/solar-ia/training/model_features.joblib')
-        return model, features
+        # model = joblib.load('training/random_forest_model.joblib')
+        model_ghi = joblib.load('training/xgboost_ghi_model.joblib')
+        model_dni = joblib.load('training/xgboost_dni_model.joblib')
+        features = joblib.load('training/model_features.joblib')
+        return model_dni, model_ghi, features
     except FileNotFoundError:
         st.error("ERRO CRÍTICO: Arquivos do modelo ('random_forest_model.joblib' ou 'model_features.joblib') não encontrados na pasta 'training/'. Execute os scripts de treino primeiro.")
-        return None, None
+        return None, None, None
 
 @st.cache_data
 def load_validation_data():
@@ -36,8 +38,9 @@ def load_validation_data():
         return None, None
 
 X_val, y_val = load_validation_data()
-model, feature_names = load_model_and_features()
-if model is None or feature_names is None:
+# model, feature_names = load_model_and_features()
+model_dni, model_ghi, feature_names = load_model_and_features()
+if model_dni is None or model_ghi is None or feature_names is None:
     st.stop()
 
 if 'lat' not in st.session_state:
@@ -181,8 +184,8 @@ with tab_pontual:
     })
 
     input_df = pd.DataFrame([input_data])[feature_names]
-    ghi_prediction = model.predict(input_df)[0][0] # GHI
-    dni_prediction = model.predict(input_df)[0][1] # DNI
+    ghi_prediction = model_ghi.predict(input_df)[0][0] # GHI
+    dni_prediction = model_dni.predict(input_df)[0][1] # DNI
 
     
     with col2:
@@ -271,7 +274,7 @@ with tab_diaria:
                         'precipitacao': precipitacao_dia, 'tipo_nuvem': float(user_cloud_type),
                     }
                     input_df_hora = pd.DataFrame([input_data_hora])[feature_names]
-                    prediction_tuple = model.predict(input_df_hora)[0]
+                    prediction_tuple = model_dni.predict(input_df_hora)[0] , model_ghi.predict(input_df_hora)[0]
                     prediction_hora = max(0, prediction_tuple[0] if target_radio == 'GHI' else prediction_tuple[1])
                     predictions_dia.append(prediction_hora)
 
@@ -380,7 +383,10 @@ with tab_anual:
     st.subheader("Comparativo no Ano de Validação (2023)")
     with st.spinner("Calculando previsões para 2023..."):
         if X_val is not None and y_val is not None:
-            pred_rf_val = pd.DataFrame(model.predict(X_val[feature_names]), index=y_val.index, columns=['ghi', 'dni'])
+            pred_rf_val = pd.DataFrame({
+                'ghi': model_ghi.predict(X_val[feature_names]),
+                'dni': model_dni.predict(X_val[feature_names])
+            }, index=y_val.index)
             df_monthly = pd.DataFrame({
                 'GHI Real (Média)': y_val['ghi'].resample('ME').mean(),
                 'GHI Previsto (RF)': pred_rf_val['ghi'].resample('ME').mean()
@@ -424,8 +430,11 @@ with tab_anual:
             df_future['precipitacao'] = precipitacao_media / 8760.0  # Distribui a precipitação anual igualmente por hora
             
             df_future_final = df_future[feature_names]
-            future_preds = pd.DataFrame(model.predict(df_future_final), index=df_future_final.index, columns=['ghi', 'dni'])
-            
+            future_preds = pd.DataFrame({
+                'ghi': model_ghi.predict(df_future_final),
+                'dni': model_dni.predict(df_future_final)
+            }, index=df_future_final.index)
+
             df_monthly_future = pd.DataFrame({'GHI Previsto (Simulação)': future_preds['ghi'].resample('M').mean()})
             st.write(f"**Média Mensal de GHI Previsto para {future_year} (W/m²)**")
             st.line_chart(data=df_monthly_future, height=400, use_container_width=True, color='#E6521F')

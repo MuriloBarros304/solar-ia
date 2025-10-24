@@ -191,6 +191,6 @@ poetry.toml
 pyrightconfig.json
 
 # joblib
-*.joblib
+*model.joblib
 
 # End of https://www.toptal.com/developers/gitignore/api/python,linux
