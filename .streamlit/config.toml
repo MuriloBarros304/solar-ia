@@ -1,0 +1,15 @@
+[theme]
+# Cor primária para elementos interativos (widgets, botões, links)
+primaryColor = "#FB9E3A"
+
+# Cor de fundo principal do app
+backgroundColor = "#000009"
+
+# Cor de fundo para elementos como a barra lateral
+secondaryBackgroundColor = "#EA2F14"
+
+# Cor do texto principal
+textColor = "#FFFFFF"
+
+# Fonte a ser usada (sans serif, serif, or monospace)
+font = "sans serif"

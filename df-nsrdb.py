@@ -22,7 +22,7 @@ MAPEAMENTO_COLUNAS_NSRDB = {
     'Temperature': 'temp_ar_nsrdb',
     'Relative Humidity': 'umidade_rel_nsrdb',
     'Wind Speed': 'vento_vel_nsrdb',
-    'Cloud Type': 'tipo_nuvem_nsrdb', # Nomeado para clareza
+    'Cloud Type': 'tipo_nuvem', # Nomeado para clareza
     'Pressure': 'pressao_nsrdb'
 }
 
@@ -36,7 +36,7 @@ COLUNAS_FINAIS_NSRDB = [
     'temp_ar_nsrdb',
     'umidade_rel_nsrdb',
     'vento_vel_nsrdb',
-    'tipo_nuvem_nsrdb',
+    'tipo_nuvem',
     'pressao_nsrdb'
 ]
 

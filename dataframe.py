@@ -1,3 +1,8 @@
+"""
+Módulo para carregar, limpar, transformar e salvar o DataFrame final.
+Também separa o DataFrame em conjuntos de treino, validação e teste.
+"""
+
 import pandas as pd
 import numpy as np
 
@@ -90,36 +95,33 @@ df_final['dia_ano_sin'] = np.sin(2 * np.pi * dias_do_ano / 365.25)
 df_final['dia_ano_cos'] = np.cos(2 * np.pi * dias_do_ano / 365.25)
 
 # Features de Lag (Defasagem)
-lags_a_criar = {
-    'temp_ar': [1, 24],
-    'umidade_rel': [3],
-    'pressao_atm_estacao': [4],
-    'dhi': [1, 24],
-    'dni': [1, 24],
-    'ghi': [1, 24]
-}
+# lags_a_criar = {
+#     'temp_ar': [1, 24],
+#     'umidade_rel': [3],
+#     'pressao_atm_estacao': [4],
+# }
 
-for coluna, lista_lags in lags_a_criar.items():
-    for lag in lista_lags:
-        nome_nova_coluna = f'{coluna}_lag{lag}h'
-        df_final[nome_nova_coluna] = df_final.groupby('codigo_estacao')[coluna].shift(lag)
+# for coluna, lista_lags in lags_a_criar.items():
+#     for lag in lista_lags:
+#         nome_nova_coluna = f'{coluna}_lag{lag}h'
+#         df_final[nome_nova_coluna] = df_final.groupby('codigo_estacao')[coluna].shift(lag)
 
-# Features de Janela Móvel (Rolling)
-colunas_rolling = ['temp_ar', 'umidade_rel', 'pressao_atm_estacao', 'dhi', 'dni', 'ghi']
-window_size = 3
+# # Features de Janela Móvel (Rolling)
+# colunas_rolling = ['temp_ar', 'umidade_rel', 'pressao_atm_estacao']
+# window_size = 3
 
-for coluna in colunas_rolling:
-    # Média Móvel
-    nome_media = f'{coluna}_media_movel_{window_size}h'
-    df_final[nome_media] = df_final.groupby('codigo_estacao')[coluna].transform(
-        lambda x: x.shift(1).rolling(window=window_size).mean()
-    )
+# for coluna in colunas_rolling:
+#     # Média Móvel
+#     nome_media = f'{coluna}_media_movel_{window_size}h'
+#     df_final[nome_media] = df_final.groupby('codigo_estacao')[coluna].transform(
+#         lambda x: x.shift(1).rolling(window=window_size).mean()
+#     )
 
-    # Desvio Padrão Móvel
-    nome_std = f'{coluna}_std_movel_{window_size}h'
-    df_final[nome_std] = df_final.groupby('codigo_estacao')[coluna].transform(
-        lambda x: x.shift(1).rolling(window=window_size).std()
-    )
+#     # Desvio Padrão Móvel
+#     nome_std = f'{coluna}_std_movel_{window_size}h'
+#     df_final[nome_std] = df_final.groupby('codigo_estacao')[coluna].transform(
+#         lambda x: x.shift(1).rolling(window=window_size).std()
+#     )
 
 # Remove quaisquer linhas que ainda possam ter nulos após a criação das novas features
 df_final.dropna(inplace=True)

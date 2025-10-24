@@ -2,7 +2,6 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import joblib
-import xgboost as xgb # Necessário para carregar o modelo XGBoost
 import sklearn.metrics
 
 # --- 1. CONFIGURAÇÃO ---
@@ -26,22 +25,29 @@ def calculate_and_save_metrics(y_true, y_pred, model_name):
     """Calcula e imprime as métricas de erro para GHI e DNI."""
     mae_ghi = sklearn.metrics.mean_absolute_error(y_true['ghi'], y_pred['ghi'])
     rmse_ghi = np.sqrt(sklearn.metrics.mean_squared_error(y_true['ghi'], y_pred['ghi']))
+    r2_ghi = sklearn.metrics.r2_score(y_true['ghi'], y_pred['ghi'])
     mae_dni = sklearn.metrics.mean_absolute_error(y_true['dni'], y_pred['dni'])
     rmse_dni = np.sqrt(sklearn.metrics.mean_squared_error(y_true['dni'], y_pred['dni']))
+    r2_dni = sklearn.metrics.r2_score(y_true['dni'], y_pred['dni'])
 
     ghi_medio_dia = y_true[y_true['ghi'] > 0]['ghi'].mean()
     dni_medio_dia = y_true[y_true['dni'] > 0]['dni'].mean()
 
     with open(f'predict/{model_name.lower()}_performance.txt', 'w') as f:
+        f.write(f"="*75 + "\n")
         f.write(f"Desempenho do Modelo {model_name}:\n")
         f.write("="*50 + "\n")
         f.write(f"Target: GHI\n")
         f.write(f"  - Erro Médio Absoluto (MAE): {mae_ghi:.2f} W/m²\n")
         f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_ghi:.2f} W/m²\n")
+        f.write(f"  - Coeficiente de determinação (R²): {r2_ghi:.4f}\n")
+        f.write("\n")
         f.write("-"*50 + "\n")
         f.write(f"Target: DNI\n")
         f.write(f"  - Erro Médio Absoluto (MAE): {mae_dni:.2f} W/m²\n")
         f.write(f"  - Raiz do Erro Quadrático Médio (RMSE): {rmse_dni:.2f} W/m²\n")
+        f.write(f"  - Coeficiente de determinação (R²): {r2_dni:.4f}\n")
+        f.write("\n")
         f.write("="*50 + "\n")
         f.write("\nPara Contexto:\n")
         f.write(f"  - GHI médio (durante o dia) no set de teste: {ghi_medio_dia:.2f} W/m²\n")
@@ -96,6 +102,7 @@ def main():
     print("Gerando previsões no conjunto de teste...")
     pred_rf_raw = rf_model.predict(X_test)
     pred_rf = pd.DataFrame(pred_rf_raw, index=y_test.index, columns=y_test.columns)
+    pred_rf.to_parquet('data/pred_rf_val.parquet') # 
 
     pred_xgb_ghi = xgb_model_ghi.predict(X_test)
     pred_xgb_dni = xgb_model_dni.predict(X_test)
@@ -135,7 +142,7 @@ def main():
 
     # SALVA O GRÁFICO DE SÉRIE TEMPORAL
     plt.savefig('predict/comparacao_series_temporais.png', dpi=300, bbox_inches='tight')
-    print("- Gráfico de séries temporais salvo como 'comparacao_series_temporais.png'")
+    print("- Gráfico de séries temporais salvo como 'predict/comparacao_series_temporais.png'")
     plt.close(fig_ts) # Fecha a figura para liberar memória
     
     # Gráfico de Dispersão (Real vs. Previsto)
@@ -163,7 +170,7 @@ def main():
 
     # SALVA O GRÁFICO DE DISPERSÃO
     plt.savefig('predict/analise_dispersao_erro.png', dpi=300, bbox_inches='tight')
-    print("- Gráfico de dispersão salvo como 'analise_dispersao_erro.png'")
+    print("- Gráfico de dispersão salvo como 'predict/analise_dispersao_erro.png'")
     plt.close(fig_scatter) # Fecha a figura para liberar memória
     
     # Gráficos de Importância das Features
