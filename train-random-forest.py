@@ -5,10 +5,10 @@ import joblib
 
 print("Carregando os conjuntos de treino e validação...")
 try:
-    X_train = pd.read_parquet('data/X_train.parquet')
-    y_train = pd.read_parquet('data/y_train.parquet')
-    X_val = pd.read_parquet('data/X_val.parquet')
-    y_val = pd.read_parquet('data/y_val.parquet')
+    X_train = pd.read_parquet('data/X_train.parquet', engine='fastparquet')
+    y_train = pd.read_parquet('data/y_train.parquet', engine='fastparquet')
+    X_val = pd.read_parquet('data/X_val.parquet', engine='fastparquet')
+    y_val = pd.read_parquet('data/y_val.parquet', engine='fastparquet')
     print("Dados carregados com sucesso.")
 except FileNotFoundError:
     print("ERRO: Arquivos de treino/validação não encontrados. Execute o script de separação de dados primeiro.")

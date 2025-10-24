@@ -22,8 +22,8 @@ END_DATE = '2023-05-07'
 # --- 2. CARREGAR DADOS E MODELOS ---
 print("Carregando dados e modelos...")
 try:
-    X_val = pd.read_parquet(X_VAL_PATH)
-    y_val = pd.read_parquet(Y_VAL_PATH)
+    X_val = pd.read_parquet(X_VAL_PATH, engine='fastparquet')
+    y_val = pd.read_parquet(Y_VAL_PATH, engine='fastparquet')
     
     rf_model = joblib.load(RF_MODEL_PATH)
     xgb_model_ghi = joblib.load(XGB_GHI_MODEL_PATH)

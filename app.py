@@ -28,8 +28,8 @@ def load_model_and_features():
 def load_validation_data():
     """Carrega os dados de validação para obter a lista de features e para comparações."""
     try:
-        X_val = pd.read_parquet('data/X_val.parquet')
-        y_val = pd.read_parquet('data/y_val.parquet')
+        X_val = pd.read_parquet('data/X_val.parquet', engine='fastparquet')
+        y_val = pd.read_parquet('data/y_val.parquet', engine='fastparquet')
         return X_val, y_val
     except FileNotFoundError:
         st.error("ERRO CRÍTICO: Arquivos de dados (X_val.parquet, y_val.parquet) não encontrados na pasta `data/`. Execute o script 'dataframe.py' primeiro.")
