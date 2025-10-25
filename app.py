@@ -4,11 +4,12 @@ import numpy as np
 import joblib
 import folium
 from datetime import datetime, time
+from Fuzzy.solar_condition import avaliar_condicao_solar, mostrar_grafico_condicao_solar
 from streamlit_folium import st_folium
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E CARREGAMENTO DE MODELOS ---
 st.set_page_config(
-    page_title="Previsão de Irradiação Solar",
+    page_title="Irradiação Solar no RN",
     page_icon="☀️",
     layout="wide"
 )
@@ -18,12 +19,12 @@ def load_model_and_features():
     """Carrega o modelo RandomForest e a lista de nomes das features."""
     try:
         # model = joblib.load('training/random_forest_model.joblib')
-        model_ghi = joblib.load('training/xgboost_ghi_model.joblib')
-        model_dni = joblib.load('training/xgboost_dni_model.joblib')
+        model_ghi = joblib.load('training/xgb_model_ghi.joblib')
+        model_dni = joblib.load('training/xgb_model_dni.joblib')
         features = joblib.load('training/model_features.joblib')
         return model_dni, model_ghi, features
     except FileNotFoundError:
-        st.error("ERRO CRÍTICO: Arquivos do modelo ('random_forest_model.joblib' ou 'model_features.joblib') não encontrados na pasta 'training/'. Execute os scripts de treino primeiro.")
+        st.error(f"ERRO CRÍTICO: Arquivos do modelo (xgb_model_ghi.joblib ou xgb_model_dni.joblib ou 'random_forest_model.joblib' ou 'model_features.joblib') não encontrados na pasta 'training/'. Execute os scripts de treino primeiro.")
         return None, None, None
 
 @st.cache_data
@@ -32,14 +33,19 @@ def load_validation_data():
     try:
         X_val = pd.read_parquet('data/X_val.parquet', engine='fastparquet')
         y_val = pd.read_parquet('data/y_val.parquet', engine='fastparquet')
-        return X_val, y_val
+        df_full = pd.read_parquet('data/dataframe.parquet', engine='fastparquet')
+        val_df_full = df_full[(df_full.index >= '2023-01-01') & (df_full.index < '2024-01-01')]
+        
+        return X_val, y_val, val_df_full # Retorna os três DataFrames
     except FileNotFoundError:
         st.error("ERRO CRÍTICO: Arquivos de dados (X_val.parquet, y_val.parquet) não encontrados na pasta `data/`. Execute o script 'dataframe.py' primeiro.")
-        return None, None
+        return None, None, None
 
-X_val, y_val = load_validation_data()
+X_val, y_val, val_df_full = load_validation_data()
 # model, feature_names = load_model_and_features()
 model_dni, model_ghi, feature_names = load_model_and_features()
+# if model is None or feature_names is None:
+#     st.stop()
 if model_dni is None or model_ghi is None or feature_names is None:
     st.stop()
 
@@ -61,13 +67,13 @@ st.sidebar.markdown("Valores usados como padrão nas simulações.")
 user_wind_speed = st.sidebar.slider("Velocidade do Vento (m/s)", 0.0, 20.0, 5.0)
 user_wind_dir = st.sidebar.slider("Direção do Vento (°)", 0, 360, 130)
 user_cloud_type = st.sidebar.slider(
-    "Tipo de Nuvem", 0, 8, 1, 
+    "Tipo de Nuvem", 0, 8, 1,
     help="Um valor de 0 representa céu limpo, enquanto 8 representa céu totalmente encoberto (escala em Oktas)."
 )
 
-st.title("☀️ Plataforma de Análise e Previsão de Irradiação Solar (GHI)")
+st.title("☀️ Análise de Irradiação Solar no RN")
 tab_mapa, tab_pontual, tab_diaria, tab_anual = st.tabs([
-    "📍 Mapa Interativo", "Previsão Pontual", "Previsão Diária", "Análise Anual"
+    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual"
 ])
 
 # ==============================================================================
@@ -145,7 +151,7 @@ with tab_mapa:
 # ABA 2: PREVISÃO PONTUAL
 # ==============================================================================
 with tab_pontual:
-    st.header("Previsão para uma Hora Específica")
+    st.header("Predição para uma Hora Específica")
     st.markdown("Ajuste os parâmetros geográficos e meteorológicos na **barra lateral** e as condições de tempo abaixo para ver a previsão ser atualizada em tempo real.")
     
     col1, col2 = st.columns(2)
@@ -154,12 +160,13 @@ with tab_pontual:
         
         c1, c2 = st.columns(2)
         with c1:
-            data = st.date_input("Data da Previsão", datetime(2023, 10, 29), format="DD/MM/YYYY")
+            data = st.date_input("Data da Predição", datetime(2023, 10, 29), format="DD/MM/YYYY")
         with c2:
-            hora = st.time_input("Hora da Previsão (HH:MM)", datetime(2023, 10, 29).replace(hour=12, minute=0).time())
-        
+            hora = st.time_input("Hora da Predição (HH:MM)", datetime(2023, 10, 29).replace(hour=12, minute=0).time())
+
         temp_ar = st.slider("Temperatura do Ar (°C)", 18.0, 40.0, 28.0)
-        umidade_rel = st.slider("Umidade Relativa (%)", 20.0, 100.0, 70.0)
+        umidade_rel = st.slider("Umidade Relativa (%)", 10.0, 100.0, 70.0)
+        pressao_atm = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0, key="pressao_pontual")
         precipitacao = st.slider("Precipitação (mm)", 0.0, 50.0, 0.0)
 
     timestamp = datetime.combine(data, hora)
@@ -176,22 +183,27 @@ with tab_pontual:
         'longitude_inmet': lon,
         'temp_ar': temp_ar,
         'umidade_rel': umidade_rel,
-        'pressao_atm_estacao': 1010.0,
+        'pressao_atm_estacao': pressao_atm,
         'vento_vel': user_wind_speed,
         'vento_dir': user_wind_dir,
         'precipitacao': precipitacao,
-        'tipo_nuvem': float(user_cloud_type),
+        'tipo_nuvem': user_cloud_type,
     })
 
     input_df = pd.DataFrame([input_data])[feature_names]
-    ghi_prediction = model_ghi.predict(input_df)[0][0] # GHI
-    dni_prediction = model_dni.predict(input_df)[0][1] # DNI
 
-    
+    # Random Forest
+    # ghi_prediction = model.predict(input_df)[0][1] # GHI
+    # dni_prediction = model.predict(input_df)[0][0] # DNI
+
+    # XGBoost
+    ghi_prediction = model_ghi.predict(input_df)[0] # GHI
+    dni_prediction = model_dni.predict(input_df)[0] # DNI
+
     with col2:
-        st.subheader("Resultado da Previsão")
-        st.metric(label="GHI Previsto", value=f"{ghi_prediction:.2f} W/m²")
-        st.metric(label="DNI Previsto", value=f"{dni_prediction:.2f} W/m²")
+        st.subheader("Resultado da Regressão")
+        st.metric(label="GHI Regressão", value=f"{ghi_prediction:.2f} W/m²")
+        st.metric(label="DNI Regressão", value=f"{dni_prediction:.2f} W/m²")
         if ghi_prediction < 10:
             st.info("Condição: Noite / Céu muito encoberto")
         elif ghi_prediction < 600:
@@ -200,6 +212,78 @@ with tab_pontual:
             st.info("Condição: Céu com nuvens esparsas")
         else:
             st.success("Condição: Céu limpo / Sol forte")
+            
+        # ----------- Lógica Fuzzy --------------#
+        try:
+            condicao_valor = avaliar_condicao_solar(ghi_prediction)
+            mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
+            if condicao_valor < 40:
+                condicao_texto = "Ruim (Baixa radiação)"
+                st.warning(f"☁️ Condição Solar: {condicao_texto}")
+            elif condicao_valor < 70:
+                condicao_texto = "Boa (Média radiação)"
+                st.info(f"🌤️ Condição Solar: {condicao_texto}")
+            else:
+                condicao_texto = "Excelente (Alta radiação)"
+                st.success(f"☀️ Condição Solar: {condicao_texto}")
+        except Exception as e:
+            st.error(f"Erro ao avaliar condição solar: {e}")
+   
+        st.markdown("---")
+        st.subheader("Explorar Dados Reais (2023)")
+        st.markdown(
+            "- A304 - Natal\n"
+            "- A316 - Caicó\n"
+            "- A372 - Macau\n"
+            "- A340 - Apodi\n"
+        )
+
+        # Verifica se a data selecionada é de 2023 e se os dados foram carregados
+        if data.year == 2023 and val_df_full is not None:
+            try:
+                # Arredonda o timestamp para a hora cheia (ex: 12:30 -> 12:00)
+                selected_timestamp = pd.to_datetime(timestamp.replace(minute=0, second=0, microsecond=0))
+                
+                # Filtra o dataframe completo para aquela hora exata
+                real_data_at_hour = val_df_full[val_df_full.index == selected_timestamp]
+
+                if not real_data_at_hour.empty:
+                    # Obtém a lista de estações que têm dados para esta hora
+                    station_list = real_data_at_hour['codigo_estacao'].unique()
+                    
+                    # Usamos st.selectbox para o usuário escolher UMA estação
+                    selected_station = st.selectbox(
+                        "Selecione uma Estação para ver os dados reais:",
+                        station_list,
+                        key="pontual_station_select"
+                    )
+                    
+                    if selected_station:
+                        # Filtra os dados para a estação escolhida
+                        station_data = real_data_at_hour[
+                            real_data_at_hour['codigo_estacao'] == selected_station
+                        ].iloc[0] # Pega a primeira (e única) linha
+                        
+                        st.write(f"Dados reais para Estação **{selected_station}** às **{hora.strftime('%H:%M')}**:")
+                        
+                        # Exibe os dados reais (GHI, DNI e features)
+                        c1_real, c2_real, c3_real = st.columns(3)
+                        c1_real.metric(label="GHI Real (W/m²)", value=f"{station_data.get('ghi', 'N/A'):.2f}")
+                        c1_real.metric(label="Temp. Ar (°C)", value=f"{station_data.get('temp_ar', 'N/A'):.2f}")
+                        
+                        c2_real.metric(label="DNI Real (W/m²)", value=f"{station_data.get('dni', 'N/A'):.2f}")
+                        c2_real.metric(label="Umidade Rel. (%)", value=f"{station_data.get('umidade_rel', 'N/A'):.2f}")
+
+                        c3_real.metric(label="Pressão (hPa)", value=f"{station_data.get('pressao_atm_estacao', 'N/A'):.1f}")
+                        c3_real.metric(label="Tipo de Nuvem", value=f"{station_data.get('tipo_nuvem', 'N/A'):.0f}")
+                else:
+                    st.info("Não há dados reais de 2023 disponíveis para esta data e hora.")
+            
+            except Exception as e:
+                st.error(f"Erro ao processar dados reais: {e}")
+        
+        elif data.year != 2023:
+            st.info("Selecione uma data em 2023 para habilitar o explorador de dados reais.")
 
 # ==============================================================================
 # ABA 3: PREVISÃO DIÁRIA
@@ -218,9 +302,7 @@ with tab_diaria:
         pressao_atm_dia = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0)
         target_radio = st.radio("Selecione o alvo da previsão:", ('GHI', 'DNI'), index=0, key='target_radio')
 
-        # --- LÓGICA DE PREPARAÇÃO DE DADOS REAIS (SEMPRE ATIVA) ---
-        # Esta lógica agora é executada toda vez que o script roda,
-        # e só recalcula se a data de simulação for alterada.
+        # --- LÓGICA DE PREPARAÇÃO DE DADOS REAIS ---
         if data_simulacao != st.session_state.last_sim_date:
             st.session_state.last_sim_date = data_simulacao
             st.session_state.real_features_diaria = None  # Reseta os dados
@@ -271,7 +353,7 @@ with tab_diaria:
                         'latitude_inmet': lat, 'longitude_inmet': lon, 'temp_ar': temp_horaria[h],
                         'umidade_rel': umidade_horaria[h], 'pressao_atm_estacao': pressao_atm_dia,
                         'vento_vel': user_wind_speed, 'vento_dir': user_wind_dir,
-                        'precipitacao': precipitacao_dia, 'tipo_nuvem': float(user_cloud_type),
+                        'precipitacao': precipitacao_dia, 'tipo_nuvem': user_cloud_type,
                     }
                     input_df_hora = pd.DataFrame([input_data_hora])[feature_names]
                     prediction_tuple = model_dni.predict(input_df_hora)[0] , model_ghi.predict(input_df_hora)[0]
@@ -352,7 +434,7 @@ with tab_diaria:
                     mask = dt_index.hour == selected_hour
                     features_at_hour = real_data_features_mean[mask].iloc[0]
                     st.write(f"Condições médias reais às **{selected_hour:02d}:00**:")
-                    c1, c2, c3 = st.columns(3)
+                    c1, c2, c3, c4 = st.columns(4)
                     with c1:
                         st.metric(label="Temp. Ar (°C)", value=f"{features_at_hour.get('temp_ar', 'N/A'):.2f}")
                         st.metric(label="Vel. Vento (m/s)", value=f"{features_at_hour.get('vento_vel', 'N/A'):.2f}")
@@ -362,6 +444,9 @@ with tab_diaria:
                     with c3:
                         st.metric(label="Pressão (hPa)", value=f"{features_at_hour.get('pressao_atm_estacao', 'N/A'):.2f}")
                         st.metric(label="Tipo de Nuvem", value=f"{features_at_hour.get('tipo_nuvem', 'N/A'):.0f}")
+                    with c4:
+                        st.metric(label="Precipitação (mm)", value=f"{features_at_hour.get('precipitacao', 'N/A'):.2f}")
+                        
                 
                 except (IndexError, KeyError):
                     st.info("Não há dados de features diurnas para esta hora selecionada.")
