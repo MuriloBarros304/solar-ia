@@ -162,16 +162,32 @@ with tab_pontual:
         with c1:
             data = st.date_input("Data da Predição", datetime(2023, 10, 29), format="DD/MM/YYYY")
         with c2:
-            hora = st.time_input("Hora da Predição (HH:MM)", datetime(2023, 10, 29).replace(hour=12, minute=0).time())
+            # Substituímos o time_input por um slider de hora, restrito ao período diurno
+            hora_int = st.slider("Hora da Predição (HH)",
+                                 min_value=7,
+                                 max_value=17,
+                                 value=12, # Padrão
+                                 step=1,
+                                 format="%02d") # Formato de exibição
+            minute_int = st.slider("Minutos da Predição (MM)",
+                                   min_value=0,
+                                   max_value=55,
+                                   value=0, # Padrão
+                                   step=5,
+                                   format="%02d") # Formato de exibição
 
-        temp_ar = st.slider("Temperatura do Ar (°C)", 18.0, 40.0, 28.0)
-        umidade_rel = st.slider("Umidade Relativa (%)", 10.0, 100.0, 70.0)
-        pressao_atm = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0, key="pressao_pontual")
-        precipitacao = st.slider("Precipitação (mm)", 0.0, 50.0, 0.0)
+        # Converte a hora (int) de volta para um objeto 'time' para o resto do script
+        hora = time(hour=hora_int, minute=minute_int)
+
+        with st.expander("Ajustar Parâmetros Climáticos"):
+            temp_ar = st.slider("Temperatura do Ar (°C)", 18.0, 40.0, 28.0)
+            umidade_rel = st.slider("Umidade Relativa (%)", 10.0, 100.0, 70.0)
+            pressao_atm = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0, key="pressao_pontual")
+            precipitacao = st.slider("Precipitação (mm)", 0.0, 50.0, 0.0)
 
     timestamp = datetime.combine(data, hora)
 
-    # Construção do dicionário de input usando valores da sidebar e da aba
+    # Construção do dicionário de input
     input_data = {}
     input_data['hora_sin'] = np.sin(2 * np.pi * timestamp.hour / 24.0)
     input_data['hora_cos'] = np.cos(2 * np.pi * timestamp.hour / 24.0)
@@ -201,89 +217,74 @@ with tab_pontual:
     dni_prediction = model_dni.predict(input_df)[0] # DNI
 
     with col2:
-        st.subheader("Resultado da Regressão")
-        st.metric(label="GHI Regressão", value=f"{ghi_prediction:.2f} W/m²")
-        st.metric(label="DNI Regressão", value=f"{dni_prediction:.2f} W/m²")
-        if ghi_prediction < 10:
-            st.info("Condição: Noite / Céu muito encoberto")
-        elif ghi_prediction < 600:
-            st.info("Condição: Nublado / Sol fraco")
-        elif ghi_prediction < 800:
-            st.info("Condição: Céu com nuvens esparsas")
-        else:
-            st.success("Condição: Céu limpo / Sol forte")
-            
-        # ----------- Lógica Fuzzy --------------#
-        try:
-            condicao_valor = avaliar_condicao_solar(ghi_prediction)
-            mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
-            
-            descricao = interpretar_condicao_fuzzy(condicao_valor)
+        st.subheader("Resultado da Predição")
+        metric1, metric2 = st.columns(2)
+        with metric1:
+            st.metric(label="GHI Predito", value=f"{ghi_prediction:.2f} W/m²")
+        with metric2:
+            st.metric(label="DNI Predito", value=f"{dni_prediction:.2f} W/m²")
 
-            if condicao_valor < 40:
-                 st.warning(descricao)
-            elif condicao_valor < 70:
-                  st.info(descricao)
-            else:
-                st.success(descricao)
-        except Exception as e:
-            st.error(f"Erro ao avaliar condição solar: {e}")
-   
-        st.markdown("---")
-        st.subheader("Explorar Dados Reais (2023)")
-        st.markdown(
-            "- A304 - Natal\n"
-            "- A316 - Caicó\n"
-            "- A372 - Macau\n"
-            "- A340 - Apodi\n"
-        )
-
-        # Verifica se a data selecionada é de 2023 e se os dados foram carregados
-        if data.year == 2023 and val_df_full is not None:
+        with st.expander("Ver Detalhes da Condição Solar (Lógica Fuzzy)"):
             try:
-                # Arredonda o timestamp para a hora cheia (ex: 12:30 -> 12:00)
-                selected_timestamp = pd.to_datetime(timestamp.replace(minute=0, second=0, microsecond=0))
+                condicao_valor = avaliar_condicao_solar(ghi_prediction)
+                mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
                 
-                # Filtra o dataframe completo para aquela hora exata
-                real_data_at_hour = val_df_full[val_df_full.index == selected_timestamp]
+                descricao = interpretar_condicao_fuzzy(condicao_valor)
 
-                if not real_data_at_hour.empty:
-                    # Obtém a lista de estações que têm dados para esta hora
-                    station_list = real_data_at_hour['codigo_estacao'].unique()
-                    
-                    # Usamos st.selectbox para o usuário escolher UMA estação
-                    selected_station = st.selectbox(
-                        "Selecione uma Estação para ver os dados reais:",
-                        station_list,
-                        key="pontual_station_select"
-                    )
-                    
-                    if selected_station:
-                        # Filtra os dados para a estação escolhida
-                        station_data = real_data_at_hour[
-                            real_data_at_hour['codigo_estacao'] == selected_station
-                        ].iloc[0] # Pega a primeira (e única) linha
-                        
-                        st.write(f"Dados reais para Estação **{selected_station}** às **{hora.strftime('%H:%M')}**:")
-                        
-                        # Exibe os dados reais (GHI, DNI e features)
-                        c1_real, c2_real, c3_real = st.columns(3)
-                        c1_real.metric(label="GHI Real (W/m²)", value=f"{station_data.get('ghi', 'N/A'):.2f}")
-                        c1_real.metric(label="Temp. Ar (°C)", value=f"{station_data.get('temp_ar', 'N/A'):.2f}")
-                        
-                        c2_real.metric(label="DNI Real (W/m²)", value=f"{station_data.get('dni', 'N/A'):.2f}")
-                        c2_real.metric(label="Umidade Rel. (%)", value=f"{station_data.get('umidade_rel', 'N/A'):.2f}")
-
-                        c3_real.metric(label="Pressão (hPa)", value=f"{station_data.get('pressao_atm_estacao', 'N/A'):.1f}")
-                        c3_real.metric(label="Tipo de Nuvem", value=f"{station_data.get('tipo_nuvem', 'N/A'):.0f}")
+                if condicao_valor < 40:
+                     st.warning(descricao)
+                elif condicao_valor < 70:
+                      st.info(descricao)
                 else:
-                    st.info("Não há dados reais de 2023 disponíveis para esta data e hora.")
-            
+                    st.success(descricao)
             except Exception as e:
-                st.error(f"Erro ao processar dados reais: {e}")
+                st.error(f"Erro ao avaliar condição solar: {e}")
+   
+    # O explorador de dados reais continua fora do expander, o que está correto.
+    st.markdown("---")
+    st.subheader("Explorar Dados Reais (2023)")
+    # ... (o resto do seu código permanece igual) ...
+    st.markdown(
+        "- A304 - Natal\n"
+        "- A316 - Caicó\n"
+        "- A372 - Macau\n"
+        "- A340 - Apodi\n"
+    )
+
+    if data.year == 2023 and val_df_full is not None:
+        try:
+            selected_timestamp = pd.to_datetime(timestamp.replace(minute=0, second=0, microsecond=0))
+            real_data_at_hour = val_df_full[val_df_full.index == selected_timestamp]
+
+            if not real_data_at_hour.empty:
+                station_list = real_data_at_hour['codigo_estacao'].unique()
+                selected_station = st.selectbox(
+                    "Selecione uma Estação para ver os dados reais:",
+                    station_list,
+                    key="pontual_station_select"
+                )
+                
+                if selected_station:
+                    station_data = real_data_at_hour[
+                        real_data_at_hour['codigo_estacao'] == selected_station
+                    ].iloc[0]
+                    
+                    st.write(f"Dados reais para Estação **{selected_station}** às **{hora.strftime('%H:%M')}**:")
+                    c1_real, c2_real, c3_real = st.columns(3)
+                    c1_real.metric(label="GHI Real (W/m²)", value=f"{station_data.get('ghi', 'N/A'):.2f}")
+                    c1_real.metric(label="Temp. Ar (°C)", value=f"{station_data.get('temp_ar', 'N/A'):.2f}")
+                    c2_real.metric(label="DNI Real (W/m²)", value=f"{station_data.get('dni', 'N/A'):.2f}")
+                    c2_real.metric(label="Umidade Rel. (%)", value=f"{station_data.get('umidade_rel', 'N/A'):.2f}")
+                    c3_real.metric(label="Pressão (hPa)", value=f"{station_data.get('pressao_atm_estacao', 'N/A'):.1f}")
+                    c3_real.metric(label="Tipo de Nuvem", value=f"{station_data.get('tipo_nuvem', 'N/A'):.0f}")
+            else:
+                st.info("Não há dados reais de 2023 disponíveis para esta data e hora.")
         
-        elif data.year != 2023:
-            st.info("Selecione uma data em 2023 para habilitar o explorador de dados reais.")
+        except Exception as e:
+            st.error(f"Erro ao processar dados reais: {e}")
+    
+    elif data.year != 2023:
+        st.info("Selecione uma data em 2023 para habilitar o explorador de dados reais.")
 
 # ==============================================================================
 # ABA 3: PREVISÃO DIÁRIA
@@ -361,7 +362,7 @@ with tab_diaria:
                     predictions_dia.append(prediction_hora)
 
             df_previsao_dia = pd.DataFrame(
-                {f"{target_radio} Previsto": predictions_dia}, 
+                {f"{target_radio} Predito": predictions_dia}, 
                 index=pd.to_datetime(timestamps_dia)
             )
 
@@ -389,7 +390,7 @@ with tab_diaria:
             color_map = {'GHI': "#F87B1B", 'DNI': '#E6521F'}
             colors_to_use = []
             
-            if f"{target_radio} Previsto" in df_plot.columns:
+            if f"{target_radio} Predito" in df_plot.columns:
                 colors_to_use.append(color_map.get(target_radio, "#FB9E3A"))
             if f"{target_radio} Real" in df_plot.columns:
                 colors_to_use.append("#FCEF91")

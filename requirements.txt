@@ -68,3 +68,5 @@ urllib3==2.5.0
 watchdog==6.0.0
 xgboost==3.0.5
 xyzservices==2025.4.0
+networkx==3.5
+fastparquet==2024.11.0
