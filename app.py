@@ -4,7 +4,7 @@ import numpy as np
 import joblib
 import folium
 from datetime import datetime, time
-from Fuzzy.solar_condition import avaliar_condicao_solar, mostrar_grafico_condicao_solar
+from Fuzzy.solar_condition import avaliar_condicao_solar, mostrar_grafico_condicao_solar, interpretar_condicao_fuzzy
 from streamlit_folium import st_folium
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E CARREGAMENTO DE MODELOS ---
@@ -217,15 +217,15 @@ with tab_pontual:
         try:
             condicao_valor = avaliar_condicao_solar(ghi_prediction)
             mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
+            
+            descricao = interpretar_condicao_fuzzy(condicao_valor)
+
             if condicao_valor < 40:
-                condicao_texto = "Ruim (Baixa radiação)"
-                st.warning(f"☁️ Condição Solar: {condicao_texto}")
+                 st.warning(descricao)
             elif condicao_valor < 70:
-                condicao_texto = "Boa (Média radiação)"
-                st.info(f"🌤️ Condição Solar: {condicao_texto}")
+                  st.info(descricao)
             else:
-                condicao_texto = "Excelente (Alta radiação)"
-                st.success(f"☀️ Condição Solar: {condicao_texto}")
+                st.success(descricao)
         except Exception as e:
             st.error(f"Erro ao avaliar condição solar: {e}")
    

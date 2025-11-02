@@ -41,6 +41,25 @@ def avaliar_condicao_solar(ghi_value):
     
     return sistema.output['condicao']
 
+
+def interpretar_condicao_fuzzy(valor):
+    """
+    Traduz o valor fuzzy (0–100) em uma descrição mais realista e gradual.
+    """
+    if valor < 25:
+        return "☁️ Muito ruim (radiação muito baixa)"
+    elif 25 <= valor < 40:
+        return "🌥️ Não muito boa (radiação baixa)"
+    elif 40 <= valor < 55:
+        return "⛅ Regular (radiação moderada)"
+    elif 55 <= valor < 70:
+        return "🌤️ Boa (radiação média)"
+    elif 70 <= valor < 85:
+        return "☀️ Muito boa (radiação alta)"
+    else:
+        return "🌞 Excelente (radiação muito alta)"
+
+
 def mostrar_grafico_condicao_solar(ghi_value):
     """
     Exibe no Streamlit as funções de pertinência da lógica fuzzy
