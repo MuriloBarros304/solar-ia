@@ -5,10 +5,10 @@ import joblib
 
 print("Carregando os conjuntos de treino e validação...")
 try:
-    X_train = pd.read_parquet('data/X_train.parquet')
-    y_train = pd.read_parquet('data/y_train.parquet')
-    X_val = pd.read_parquet('data/X_val.parquet')
-    y_val = pd.read_parquet('data/y_val.parquet')
+    X_train = pd.read_parquet('data/X_train.parquet', engine='fastparquet')
+    y_train = pd.read_parquet('data/y_train.parquet', engine='fastparquet')
+    X_val = pd.read_parquet('data/X_val.parquet', engine='fastparquet')
+    y_val = pd.read_parquet('data/y_val.parquet', engine='fastparquet')
     print("Dados carregados com sucesso.")
 except FileNotFoundError:
     print("ERRO: Arquivos de treino/validação não encontrados. Execute o script de separação de dados primeiro.")
@@ -43,5 +43,7 @@ pred_df = pd.DataFrame(predictions, index=y_val.index, columns=y_val.columns)
 
 # Salvar o modelo treinado para uso futuro
 print("\nSalvando o modelo RandomForest treinado...")
-joblib.dump(rf_model, 'training/random_forest_model.joblib')
+joblib.dump(rf_model, '/Users/User/Documents/IA - Solar/solar-ia/training/random_forest_model.joblib')
+
+
 print("Modelo salvo como 'training/random_forest_model.joblib'")

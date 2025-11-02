@@ -4,6 +4,7 @@ import numpy as np
 import joblib
 import folium
 from datetime import datetime, time
+from Fuzzy.solar_condition import avaliar_condicao_solar, mostrar_grafico_condicao_solar, interpretar_condicao_fuzzy
 from streamlit_folium import st_folium
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E CARREGAMENTO DE MODELOS ---
@@ -30,9 +31,9 @@ def load_model_and_features():
 def load_validation_data():
     """Carrega os dados de validação para obter a lista de features e para comparações."""
     try:
-        X_val = pd.read_parquet('data/X_val.parquet')
-        y_val = pd.read_parquet('data/y_val.parquet')
-        df_full = pd.read_parquet('data/dataframe.parquet')
+        X_val = pd.read_parquet('data/X_val.parquet', engine='fastparquet')
+        y_val = pd.read_parquet('data/y_val.parquet', engine='fastparquet')
+        df_full = pd.read_parquet('data/dataframe.parquet', engine='fastparquet')
         val_df_full = df_full[(df_full.index >= '2023-01-01') & (df_full.index < '2024-01-01')]
         
         return X_val, y_val, val_df_full # Retorna os três DataFrames
@@ -211,6 +212,23 @@ with tab_pontual:
             st.info("Condição: Céu com nuvens esparsas")
         else:
             st.success("Condição: Céu limpo / Sol forte")
+            
+        # ----------- Lógica Fuzzy --------------#
+        try:
+            condicao_valor = avaliar_condicao_solar(ghi_prediction)
+            mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
+            
+            descricao = interpretar_condicao_fuzzy(condicao_valor)
+
+            if condicao_valor < 40:
+                 st.warning(descricao)
+            elif condicao_valor < 70:
+                  st.info(descricao)
+            else:
+                st.success(descricao)
+        except Exception as e:
+            st.error(f"Erro ao avaliar condição solar: {e}")
+   
         st.markdown("---")
         st.subheader("Explorar Dados Reais (2023)")
         st.markdown(

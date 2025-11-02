@@ -10,8 +10,8 @@ RF_MODEL_PATH = 'training/random_forest_model.joblib'
 XGB_GHI_MODEL_PATH = 'training/xgb_model_ghi.joblib'
 XGB_DNI_MODEL_PATH = 'training/xgb_model_dni.joblib'
 
-X_VAL_PATH = 'data/X_val.parquet'
-Y_VAL_PATH = 'data/y_val.parquet'
+X_VAL_PATH = '/Users/User/Documents/IA - Solar/solar-ia/data/X_val.parquet'
+Y_VAL_PATH = '/Users/User/Documents/IA - Solar/solar-ia/data/y_val.parquet'
 
 # <<<-- Escolha um período para visualizar -->>>
 # Um período de 3 a 5 dias é ideal para ver os detalhes.
@@ -22,8 +22,8 @@ END_DATE = '2023-05-07'
 # --- 2. CARREGAR DADOS E MODELOS ---
 print("Carregando dados e modelos...")
 try:
-    X_val = pd.read_parquet(X_VAL_PATH)
-    y_val = pd.read_parquet(Y_VAL_PATH)
+    X_val = pd.read_parquet(X_VAL_PATH, engine='fastparquet')
+    y_val = pd.read_parquet(Y_VAL_PATH, engine='fastparquet')
     
     rf_model = joblib.load(RF_MODEL_PATH)
     xgb_model_ghi = joblib.load(XGB_GHI_MODEL_PATH)

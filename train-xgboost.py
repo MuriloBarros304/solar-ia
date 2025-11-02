@@ -5,10 +5,10 @@ import joblib
 
 print("Carregando os conjuntos de treino e validação...")
 try:
-    X_train = pd.read_parquet('data/X_train.parquet')
-    y_train = pd.read_parquet('data/y_train.parquet')
-    X_val = pd.read_parquet('data/X_val.parquet')
-    y_val = pd.read_parquet('data/y_val.parquet')
+    X_train = pd.read_parquet('data/X_train.parquet', engine='fastparquet')
+    y_train = pd.read_parquet('data/y_train.parquet', engine='fastparquet')
+    X_val = pd.read_parquet('data/X_val.parquet', engine='fastparquet')
+    y_val = pd.read_parquet('data/y_val.parquet', engine='fastparquet')
     print("Dados carregados com sucesso.")
 except FileNotFoundError:
     print("ERRO: Arquivos de treino/validação não encontrados. Execute o script de separação de dados primeiro.")
@@ -60,6 +60,6 @@ pred_df = pd.DataFrame({
 
 # Salvar o modelo treinado para uso futuro
 print("\nSalvando o modelo XGBoost treinado...")
-joblib.dump(xgb_model_ghi, 'training/xgb_model_ghi.joblib')
-joblib.dump(xgb_model_dni, 'training/xgb_model_dni.joblib')
+joblib.dump(xgb_model_ghi, '/Users/User/Documents/IA - Solar/solar-ia/training/xgb_model_ghi.joblib')
+joblib.dump(xgb_model_dni, '/Users/User/Documents/IA - Solar/solar-ia/training/xgb_model_dni.joblib')
 print("Modelos salvos como 'xgb_model_ghi.joblib' e 'xgb_model_dni.joblib'")
