@@ -475,7 +475,7 @@ with tab_anual:
             }, index=y_val.index)
             df_monthly = pd.DataFrame({
                 'GHI Real (Média)': y_val['ghi'].resample('ME').mean(),
-                'GHI Predito (RF)': pred_val['ghi'].resample('ME').mean()
+                'GHI Predito (XGBoost)': pred_val['ghi'].resample('ME').mean()
             })
             st.line_chart(data=df_monthly, height=400, color=['#E6521F', '#FCEF91'], x_label="Data", y_label="GHI (W/m²)") # type: ignore
     
