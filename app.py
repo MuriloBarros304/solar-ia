@@ -143,7 +143,7 @@ with tab_mapa:
             st.warning("📍 Ponto fora da área de cobertura. Por favor, clique dentro dos limites do Rio Grande do Norte.")
     st.header("Sobre o projeto")
     st.markdown("""
-    Esta plataforma foi desenvolvida para fornecer previsões precisas de irradiação geral horizontal (GHI) e irradiação direta normal (DNI) no estado do Rio Grande do Norte, Brasil. Utilizando um modelo de Random Forest treinado com dados históricos de estações meteorológicas locais, o sistema permite simulações personalizadas com base em condições climáticas específicas e localização geográfica.
+    Esta plataforma foi desenvolvida para fornecer previsões precisas de irradiação geral horizontal (GHI) e irradiação direta normal (DNI) no estado do Rio Grande do Norte, Brasil. Utilizando um modelo de XGBoost treinado com dados históricos de estações meteorológicas locais, o sistema permite simulações personalizadas com base em condições climáticas específicas e localização geográfica.
     """)
 
 # ==============================================================================
@@ -408,7 +408,7 @@ with tab_diaria:
                     max_value=max(daylight_hours),
                     value=12 if 12 in daylight_hours else min(daylight_hours),
                     format="%02d:00",
-                    key="explorer_slider" # Adiciona uma chave para estabilidade
+                    key="explorer_slider"
                 )
                 try:
                     # Usa o DatetimeIndex para criar a máscara de hora
@@ -450,13 +450,13 @@ with tab_anual:
     st.subheader("Comparativo no Ano de Validação (2023)")
     with st.spinner("Calculando previsões para 2023..."):
         if X_val is not None and y_val is not None:
-            pred_rf_val = pd.DataFrame({
+            pred_val = pd.DataFrame({
                 'ghi': model_ghi.predict(X_val[feature_names]),
                 'dni': model_dni.predict(X_val[feature_names])
             }, index=y_val.index)
             df_monthly = pd.DataFrame({
                 'GHI Real (Média)': y_val['ghi'].resample('ME').mean(),
-                'GHI Previsto (RF)': pred_rf_val['ghi'].resample('ME').mean()
+                'GHI Predito (RF)': pred_val['ghi'].resample('ME').mean()
             })
             st.line_chart(data=df_monthly, height=400, color=['#E6521F', '#FCEF91'], x_label="Data", y_label="GHI (W/m²)") # type: ignore
     
@@ -492,7 +492,7 @@ with tab_anual:
             df_future['umidade_rel'] = user_humidity
             df_future['vento_vel'] = user_wind_speed
             df_future['vento_dir'] = user_wind_dir
-            df_future['tipo_nuvem'] = float(user_cloud_type)
+            df_future['tipo_nuvem'] = user_cloud_type
             df_future['pressao_atm_estacao'] = pressao_atm_media
             df_future['precipitacao'] = precipitacao_media / 8760.0  # Distribui a precipitação anual igualmente por hora
             
