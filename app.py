@@ -182,7 +182,7 @@ with tab_pontual:
         with st.expander("Ajustar Parâmetros Climáticos"):
             temp_ar = st.slider("Temperatura do Ar (°C)", 18.0, 40.0, 28.0)
             umidade_rel = st.slider("Umidade Relativa (%)", 10.0, 100.0, 70.0)
-            pressao_atm = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0, key="pressao_pontual")
+            pressao_atm = st.slider("Pressão Atmosférica Estimada (mB)", 980.0, 1050.0, 1010.0, key="pressao_pontual")
             precipitacao = st.slider("Precipitação (mm)", 0.0, 50.0, 0.0)
 
     timestamp = datetime.combine(data, hora)
@@ -275,7 +275,7 @@ with tab_pontual:
                     c1_real.metric(label="Temp. Ar (°C)", value=f"{station_data.get('temp_ar', 'N/A'):.2f}")
                     c2_real.metric(label="DNI Real (W/m²)", value=f"{station_data.get('dni', 'N/A'):.2f}")
                     c2_real.metric(label="Umidade Rel. (%)", value=f"{station_data.get('umidade_rel', 'N/A'):.2f}")
-                    c3_real.metric(label="Pressão (hPa)", value=f"{station_data.get('pressao_atm_estacao', 'N/A'):.1f}")
+                    c3_real.metric(label="Pressão (mB)", value=f"{station_data.get('pressao_atm_estacao', 'N/A'):.1f}")
                     c3_real.metric(label="Tipo de Nuvem", value=f"{station_data.get('tipo_nuvem', 'N/A'):.0f}")
             else:
                 st.info("Não há dados reais de 2023 disponíveis para esta data e hora.")
@@ -300,7 +300,7 @@ with tab_diaria:
         temp_meio_dia = st.slider("Temp. ao Meio-Dia (°C)", 25.0, 42.0, 32.0)
         umidade_meio_dia = st.slider("Umidade ao Meio-Dia (%)", 20.0, 100.0, 60.0)
         precipitacao_dia = st.slider("Precipitação Diária (mm)", 0.0, 50.0, 0.0)
-        pressao_atm_dia = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0)
+        pressao_atm_dia = st.slider("Pressão Atmosférica Estimada (mB)", 980.0, 1050.0, 1010.0)
         target_radio = st.radio("Selecione o alvo da previsão:", ('GHI', 'DNI'), index=0, key='target_radio')
 
         # --- LÓGICA DE PREPARAÇÃO DE DADOS REAIS ---
@@ -443,7 +443,7 @@ with tab_diaria:
                         st.metric(label="Umidade Rel. (%)", value=f"{features_at_hour.get('umidade_rel', 'N/A'):.2f}")
                         st.metric(label="Dir. Vento (°)", value=f"{features_at_hour.get('vento_dir', 'N/A'):.0f}")
                     with c3:
-                        st.metric(label="Pressão (hPa)", value=f"{features_at_hour.get('pressao_atm_estacao', 'N/A'):.2f}")
+                        st.metric(label="Pressão (mB)", value=f"{features_at_hour.get('pressao_atm_estacao', 'N/A'):.2f}")
                         st.metric(label="Tipo de Nuvem", value=f"{features_at_hour.get('tipo_nuvem', 'N/A'):.0f}")
                     with c4:
                         st.metric(label="Precipitação (mm)", value=f"{features_at_hour.get('precipitacao', 'N/A'):.2f}")
@@ -493,7 +493,7 @@ with tab_anual:
         # Sempre criar os sliders para garantir que user_temp e user_humidity sejam vinculados
         user_temp = st.slider("Temperatura Média Anual (°C)", 20.0, 35.0, default_temp)
         user_humidity = st.slider("Umidade Relativa Média Anual (%)", 40.0, 90.0, default_humidity)
-        pressao_atm_media = st.slider("Pressão Atmosférica Média Estimada (hPa)", 980.0, 1050.0, 1012.0)
+        pressao_atm_media = st.slider("Pressão Atmosférica Média Estimada (mB)", 980.0, 1050.0, 1012.0)
         precipitacao_media = st.slider("Precipitação Média Anual (mm)", 0.0, 2000.0, 800.0)
 
     if st.button(f"Gerar Simulação para {future_year}", type="primary"):
