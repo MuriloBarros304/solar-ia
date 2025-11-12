@@ -140,6 +140,6 @@ Cada palavra indicando o nome de um arquivo deve ser mencionada para ser exibida
     "importância rf"
     "importância xg"
 
-Responda de forma concisa. Se o usuário perguntar sobre o "erro", mencione "dispersão". Se perguntar sobre "desempenho ao longo do tempo", mencione "série temporal" ou "comparação". Se perguntar sobre "quais features são importantes", mencione "importância" e o nome do modelo.
+Responda de forma concisa. Se o usuário perguntar sobre o "erro", mencione "dispersão". Se perguntar sobre "desempenho ao longo do tempo", mencione "série temporal" ou "comparação". Se perguntar sobre "quais features são importantes", mencione "importância" e o nome do modelo. Se você já exibiu um gráfico, evite exibir novamente, pois o histórico fica disponível para o usuário, assim ficará repetido caso seja mencionado um gráfico mais de uma vez.
 
 FIM DO CONTEXTO

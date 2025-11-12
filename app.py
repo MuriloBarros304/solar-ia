@@ -545,31 +545,37 @@ with tab_chat:
             user_prompt = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual modelo teve o menor erro?", key="chat_input")
             submit_button = st.form_submit_button("Enviar")
 
-    for message in st.session_state.chat_history:
-        with st.chat_message(message["role"]):
-            st.markdown(message["text"])
+    for interaction in reversed(st.session_state.chat_history):
+        with st.chat_message("user"):
+            st.markdown(interaction["question"])
             
-            # Exibe as imagens associadas à mensagem
-            if message["images"]:
-                for img_path in message["images"]:
+        with st.chat_message("model"):
+            st.markdown(interaction["answer"])
+            
+            if interaction["images"]:
+                for img_path in interaction["images"]:
                     if os.path.exists(img_path):
                         st.image(img_path, caption=f"Gráfico: {img_path}", width="content")
                     else:
                         st.warning(f"Imagem {img_path} não encontrada no servidor.")
 
-    
-
     if submit_button and user_prompt:
-        st.session_state.chat_history.append({"role": "user", "text": user_prompt, "images": []})
-        
         with st.spinner("Analisando sua pergunta e buscando gráficos..."):
             try:
                 api_text, api_images = chat.run_ai(user_prompt)
                 
-                st.session_state.chat_history.append({"role": "model", "text": api_text, "images": api_images})
+                st.session_state.chat_history.append({
+                    "question": user_prompt,
+                    "answer": api_text,
+                    "images": api_images
+                })
                 
             except Exception as e:
                 error_message = f"Ocorreu um erro ao processar sua pergunta: {e}"
-                st.session_state.chat_history.append({"role": "model", "text": error_message, "images": []})
+                st.session_state.chat_history.append({
+                    "question": user_prompt,
+                    "answer": error_message,
+                    "images": []
+                })
         
         st.rerun()
