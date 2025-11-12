@@ -3,9 +3,14 @@ import pandas as pd
 import numpy as np
 import joblib
 import folium
+import os
+import chat
 from datetime import datetime, time
 from Fuzzy.solar_condition import avaliar_condicao_solar, mostrar_grafico_condicao_solar, interpretar_condicao_fuzzy
 from streamlit_folium import st_folium
+
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E CARREGAMENTO DE MODELOS ---
 st.set_page_config(
@@ -72,8 +77,8 @@ user_cloud_type = st.sidebar.slider(
 )
 
 st.title("☀️ Análise de Irradiação Solar no RN")
-tab_mapa, tab_pontual, tab_diaria, tab_anual = st.tabs([
-    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual"
+tab_mapa, tab_pontual, tab_diaria, tab_anual, tab_chat = st.tabs([
+    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual", "Chatbot"
 ])
 
 # ==============================================================================
@@ -528,3 +533,43 @@ with tab_anual:
             df_kwh_future = pd.DataFrame({'Insolação Prevista (Simulação)': future_preds['ghi'].resample('M').sum() / 1000})
             st.write(f"**Insolação Total Mensal Prevista para {future_year} (kWh/m²)**")
             st.area_chart(data=df_kwh_future, height=400, use_container_width=True, color='#E6521F')
+
+# ==============================================================================
+# ABA 4: CHAT COM LLM
+# ==============================================================================
+with tab_chat:
+    st.header("Chatbot do Projeto")
+    st.markdown("Faça perguntas sobre o projeto, os modelos e os resultados")
+
+    with st.form(key="chat_form", clear_on_submit=True):
+            user_prompt = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual modelo teve o menor erro?", key="chat_input")
+            submit_button = st.form_submit_button("Enviar")
+
+    for message in st.session_state.chat_history:
+        with st.chat_message(message["role"]):
+            st.markdown(message["text"])
+            
+            # Exibe as imagens associadas à mensagem
+            if message["images"]:
+                for img_path in message["images"]:
+                    if os.path.exists(img_path):
+                        st.image(img_path, caption=f"Gráfico: {img_path}", width="content")
+                    else:
+                        st.warning(f"Imagem {img_path} não encontrada no servidor.")
+
+    
+
+    if submit_button and user_prompt:
+        st.session_state.chat_history.append({"role": "user", "text": user_prompt, "images": []})
+        
+        with st.spinner("Analisando sua pergunta e buscando gráficos..."):
+            try:
+                api_text, api_images = chat.run_ai(user_prompt)
+                
+                st.session_state.chat_history.append({"role": "model", "text": api_text, "images": api_images})
+                
+            except Exception as e:
+                error_message = f"Ocorreu um erro ao processar sua pergunta: {e}"
+                st.session_state.chat_history.append({"role": "model", "text": error_message, "images": []})
+        
+        st.rerun()
