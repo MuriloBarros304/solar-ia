@@ -193,4 +193,7 @@ pyrightconfig.json
 # joblib
 *model.joblib
 
+# api key
+secrets.toml
+
 # End of https://www.toptal.com/developers/gitignore/api/python,linux

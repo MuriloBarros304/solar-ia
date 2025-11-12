@@ -54,20 +54,20 @@ def calculate_and_save_metrics(y_true, y_pred, model_name):
         f.write(f"  - DNI médio (durante o dia) no set de teste: {dni_medio_dia:.2f} W/m²\n")
 
 def plot_feature_importance(model, feature_names, model_name):
-    """Plota e SALVA a importância das features para modelos baseados em árvores."""
+    """Plota e salva a importância das features para modelos baseados em árvores."""
     if not hasattr(model, 'feature_importances_'):
         print(f"\nO modelo {model_name} não suporta 'feature_importances_'.")
         return
         
     importances = model.feature_importances_
-    indices = np.argsort(importances)[-20:] # Top 20 features
+    indices = np.argsort(importances)[-15:] # Top 15 features
     
     # Cria uma nova figura para este gráfico específico
     plt.figure(figsize=(10, 12))
-    plt.title(f'Importância das Features - {model_name}')
+    plt.title(f'Importância das Features - {model_name}', fontsize=18)
     plt.barh(range(len(indices)), importances[indices], color='b', align='center')
-    plt.yticks(range(len(indices)), [feature_names[i] for i in indices])
-    plt.xlabel('Importância Relativa')
+    plt.yticks(range(len(indices)), [feature_names[i] for i in indices], fontsize=18)
+    plt.xlabel('Importância Relativa', fontsize=18)
     plt.tight_layout()
     
     # Define um nome de arquivo e salva a figura
