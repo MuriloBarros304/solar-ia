@@ -4,7 +4,7 @@ import numpy as np
 import joblib
 import folium
 from datetime import datetime, time
-from Fuzzy.solar_condition import avaliar_condicao_solar, mostrar_grafico_condicao_solar, interpretar_condicao_fuzzy
+from Fuzzy.solar_condition import avaliar_condicao_solar,interpretar_condicao_fuzzy, hora_sin, hora_cos, tipo_nuvem, temp_ar, condicao_solar, plot_var
 from streamlit_folium import st_folium
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E CARREGAMENTO DE MODELOS ---
@@ -72,8 +72,8 @@ user_cloud_type = st.sidebar.slider(
 )
 
 st.title("☀️ Análise de Irradiação Solar no RN")
-tab_mapa, tab_pontual, tab_diaria, tab_anual = st.tabs([
-    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual"
+tab_mapa, tab_pontual, tab_diaria, tab_anual, aba_fuzzy = st.tabs([
+    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual", "Sistema Fuzzy"
 ])
 
 # ==============================================================================
@@ -527,3 +527,60 @@ with tab_anual:
             df_kwh_future = pd.DataFrame({'Insolação Prevista (Simulação)': future_preds['ghi'].resample('M').sum() / 1000})
             st.write(f"**Insolação Total Mensal Prevista para {future_year} (kWh/m²)**")
             st.area_chart(data=df_kwh_future, height=400, use_container_width=True, color='#E6521F')
+
+
+# ----------------------------------------------------------
+# ABA 5 — SISTEMA FUZZY COMPLETO
+# ----------------------------------------------------------
+with aba_fuzzy:
+    
+    st.header("🔆 Sistema Fuzzy de Avaliação Solar")
+
+    st.subheader("Entradas do Sistema Fuzzy")
+
+    # ------------------------------------------------------
+    #                     INPUTS DO USUÁRIO
+    # ------------------------------------------------------
+    col1, col2 = st.columns(2)
+
+    with col1:
+        h_sin = st.slider("hora_sin", -1.0, 1.0, 0.0, 0.01)
+        h_cos = st.slider("hora_cos", -1.0, 1.0, 0.0, 0.01)
+
+    with col2:
+        nuvem = st.slider("tipo_nuvem", 0.0, 10.0, 5.0, 0.1)
+        temp = st.slider("temperatura do ar (°C)", 0.0, 40.0, 25.0, 0.1)
+
+    # ------------------------------------------------------
+    #               EXECUTA O MODELO FUZZY
+    # ------------------------------------------------------
+    resultado = avaliar_condicao_solar(h_sin, h_cos, nuvem, temp)
+
+    st.subheader("Resultado da Defuzzificação")
+    st.metric("Valor Crisp", f"{resultado:.2f}")
+
+    st.subheader("Interpretação da Condição Solar")
+    st.write(interpretar_condicao_fuzzy(resultado))
+
+    st.markdown("---")
+
+    # ------------------------------------------------------
+    #         SEÇÃO DE GRÁFICOS (FUNÇÕES DE PERTINÊNCIA)
+    # ------------------------------------------------------
+    st.subheader("📈 Visualização das Funções de Pertinência")
+
+    opcao = st.selectbox(
+        "Escolha uma variável fuzzy para visualizar",
+        ("hora_sin", "hora_cos", "tipo_nuvem", "temp_ar", "condicao_solar")
+    )
+
+    if opcao == "hora_sin":
+        st.pyplot(plot_var(hora_sin))
+    elif opcao == "hora_cos":
+        st.pyplot(plot_var(hora_cos))
+    elif opcao == "tipo_nuvem":
+        st.pyplot(plot_var(tipo_nuvem))
+    elif opcao == "temp_ar":
+        st.pyplot(plot_var(temp_ar))
+    elif opcao == "condicao_solar":
+        st.pyplot(plot_var(condicao_solar))

@@ -1,84 +1,121 @@
 import numpy as np
+import matplotlib.pyplot as plt
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
-import matplotlib.pyplot as plt
-import streamlit as st
 
-def avaliar_condicao_solar(ghi_value):
-    """
-    Avalia qualitativamente a condição solar (baixa, média, alta)
-    com base no valor de GHI previsto.
-    """
-    # Variável fuzzy de entrada (GHI)
-    ghi = ctrl.Antecedent(np.arange(0, 1100, 1), 'ghi')
-    
-    # Variável fuzzy de saída (condição solar)
-    condicao = ctrl.Consequent(np.arange(0, 100, 1), 'condicao')
-    
-    # Funções de pertinência
-    ghi['baixa'] = fuzz.trimf(ghi.universe, [0, 0, 400])
-    ghi['media'] = fuzz.trimf(ghi.universe, [300, 600, 800])
-    ghi['alta'] = fuzz.trimf(ghi.universe, [700, 1000, 1000])
-    
-    condicao['ruim'] = fuzz.trimf(condicao.universe, [0, 0, 40])
-    condicao['boa'] = fuzz.trimf(condicao.universe, [30, 60, 80])
-    condicao['excelente'] = fuzz.trimf(condicao.universe, [70, 100, 100])
-    
-    # Regras fuzzy
-    regras = [
-        ctrl.Rule(ghi['baixa'], condicao['ruim']),
-        ctrl.Rule(ghi['media'], condicao['boa']),
-        ctrl.Rule(ghi['alta'], condicao['excelente'])
-    ]
-    
-    # Cria o sistema fuzzy
-    sistema_ctrl = ctrl.ControlSystem(regras)
-    sistema = ctrl.ControlSystemSimulation(sistema_ctrl)
-    
-    # Entrada
-    sistema.input['ghi'] = ghi_value
-    sistema.compute()
-    
-    return sistema.output['condicao']
+# ======================================================
+# 1. Declaração das variáveis fuzzy
+# ======================================================
+hora_sin = ctrl.Antecedent(np.linspace(-1, 1, 100), 'hora_sin')
+hora_cos = ctrl.Antecedent(np.linspace(-1, 1, 100), 'hora_cos')
+tipo_nuvem = ctrl.Antecedent(np.linspace(0, 10, 100), 'tipo_nuvem')
+temp_ar = ctrl.Antecedent(np.linspace(0, 40, 100), 'temp_ar')
+condicao_solar = ctrl.Consequent(np.linspace(0, 100, 200), 'condicao_solar')
+
+# ======================================================
+# 2. Funções de pertinência
+# ======================================================
+
+# hora_sin
+hora_sin['baixa'] = fuzz.trimf(hora_sin.universe, [-1, -1, 0])
+hora_sin['media'] = fuzz.trimf(hora_sin.universe, [-1, 0, 1])
+hora_sin['alta'] = fuzz.trimf(hora_sin.universe, [0, 1, 1])
+
+# hora_cos
+hora_cos['baixa'] = fuzz.trimf(hora_cos.universe, [-1, -1, 0])
+hora_cos['media'] = fuzz.trimf(hora_cos.universe, [-1, 0, 1])
+hora_cos['alta'] = fuzz.trimf(hora_cos.universe, [0, 1, 1])
+
+# tipo_nuvem
+tipo_nuvem['limpo'] = fuzz.trimf(tipo_nuvem.universe, [0, 0, 3])
+tipo_nuvem['parcial'] = fuzz.trimf(tipo_nuvem.universe, [2, 5, 8])
+tipo_nuvem['carregado'] = fuzz.trimf(tipo_nuvem.universe, [7, 10, 10])
+
+# temp_ar
+temp_ar['baixa'] = fuzz.trimf(temp_ar.universe, [0, 0, 18])
+temp_ar['media'] = fuzz.trimf(temp_ar.universe, [15, 25, 32])
+temp_ar['alta'] = fuzz.trimf(temp_ar.universe, [28, 40, 40])
+
+# condicao_solar
+condicao_solar['baixa'] = fuzz.trimf(condicao_solar.universe, [0, 0, 40])
+condicao_solar['media'] = fuzz.trimf(condicao_solar.universe, [30, 50, 70])
+condicao_solar['alta'] = fuzz.trimf(condicao_solar.universe, [60, 100, 100])
+
+# ======================================================
+# 3. Regras do sistema fuzzy
+# ======================================================
+regra1 = ctrl.Rule(
+    tipo_nuvem['limpo'] & temp_ar['alta'],
+    condicao_solar['alta']
+)
+
+regra2 = ctrl.Rule(
+    tipo_nuvem['parcial'] & temp_ar['media'],
+    condicao_solar['media']
+)
+
+regra3 = ctrl.Rule(
+    tipo_nuvem['carregado'],
+    condicao_solar['baixa']
+)
+
+regra4 = ctrl.Rule(
+    hora_sin['alta'] & hora_cos['alta'] & tipo_nuvem['limpo'],
+    condicao_solar['alta']
+)
+
+regra5 = ctrl.Rule(
+    hora_sin['baixa'] | hora_cos['baixa'],
+    condicao_solar['baixa']
+)
+
+# Sistema de controle
+controle_solar = ctrl.ControlSystem([regra1, regra2, regra3, regra4, regra5])
+simulador = ctrl.ControlSystemSimulation(controle_solar)
+
+# ======================================================
+# 4. Função de avaliação
+# ======================================================
+def avaliar_condicao_solar(h_sin, h_cos, nuvem, temp):
+    simulador.input['hora_sin'] = h_sin
+    simulador.input['hora_cos'] = h_cos
+    simulador.input['tipo_nuvem'] = nuvem
+    simulador.input['temp_ar'] = temp
+
+    simulador.compute()
+
+    return simulador.output['condicao_solar']
 
 
-def interpretar_condicao_fuzzy(valor):
-    """
-    Traduz o valor fuzzy (0–100) em uma descrição mais realista e gradual.
-    """
-    if valor < 25:
-        return "☁️ Muito ruim (radiação muito baixa)"
-    elif 25 <= valor < 40:
-        return "🌥️ Não muito boa (radiação baixa)"
-    elif 40 <= valor < 55:
-        return "⛅ Regular (radiação moderada)"
-    elif 55 <= valor < 70:
-        return "🌤️ Boa (radiação média)"
-    elif 70 <= valor < 85:
-        return "☀️ Muito boa (radiação alta)"
-    else:
-        return "🌞 Excelente (radiação muito alta)"
-
-
-def mostrar_grafico_condicao_solar(ghi_value):
-    """
-    Exibe no Streamlit as funções de pertinência da lógica fuzzy
-    e o ponto correspondente ao valor de GHI previsto.
-    """
-    x_ghi = np.arange(0, 1100, 1)
-    rad_baixa = fuzz.trimf(x_ghi, [0, 0, 400])
-    rad_media = fuzz.trimf(x_ghi, [300, 600, 800])
-    rad_alta = fuzz.trimf(x_ghi, [700, 1000, 1000])
-
-    fig, ax = plt.subplots(figsize=(6, 3))
-    ax.plot(x_ghi, rad_baixa, 'b', label='Baixa')
-    ax.plot(x_ghi, rad_media, 'g', label='Média')
-    ax.plot(x_ghi, rad_alta, 'r', label='Alta')
-    ax.axvline(ghi_value, color='k', linestyle='--', linewidth=1.5, label=f"GHI={ghi_value:.1f}")
-    ax.set_title("Funções de Pertinência - GHI")
-    ax.set_xlabel("GHI (W/m²)")
-    ax.set_ylabel("Pertinência")
+# ======================================================
+# 5. Função para gerar gráfico de pertinência de uma variável
+# ======================================================
+def plot_var(var):
+    fig, ax = plt.subplots(figsize=(7, 3))
+    for label, mf in var.terms.items():
+        ax.plot(var.universe, mf.mf, label=label)
+    ax.set_title(f"Funções de Pertinência - {var.label}")
+    ax.set_xlabel(var.label)
+    ax.set_ylabel("Grau de Pertinência")
     ax.legend()
+    ax.grid(True)
+    return fig
 
-    st.pyplot(fig)
-    plt.close(fig)
+
+# ======================================================
+# 6. Função para mostrar gráfico da condição solar
+# ======================================================
+def mostrar_grafico_condicao_solar():
+    return plot_var(condicao_solar)
+
+
+# ======================================================
+# 7. Texto interpretando o resultado crisp
+# ======================================================
+def interpretar_condicao_fuzzy(valor):
+    if valor < 40:
+        return "🌥 Condição Solar BAIXA"
+    elif valor < 70:
+        return "⛅ Condição Solar MÉDIA"
+    else:
+        return "☀ Condição Solar ALTA"
