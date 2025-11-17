@@ -3,9 +3,14 @@ import pandas as pd
 import numpy as np
 import joblib
 import folium
+import os
+import chat
 from datetime import datetime, time
 from Fuzzy.solar_condition import avaliar_condicao_solar,interpretar_condicao_fuzzy, hora_sin, hora_cos, tipo_nuvem, temp_ar, condicao_solar, plot_var
 from streamlit_folium import st_folium
+
+if 'chat_history' not in st.session_state:
+    st.session_state.chat_history = []
 
 # --- 1. CONFIGURAÇÃO DA PÁGINA E CARREGAMENTO DE MODELOS ---
 st.set_page_config(
@@ -72,8 +77,9 @@ user_cloud_type = st.sidebar.slider(
 )
 
 st.title("☀️ Análise de Irradiação Solar no RN")
-tab_mapa, tab_pontual, tab_diaria, tab_anual, aba_fuzzy = st.tabs([
-    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual", "Sistema Fuzzy"
+
+tab_mapa, tab_pontual, tab_diaria, tab_anual, tab_chat, aba_fuzzy = st.tabs([
+    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual", "Chatbot", "Sistema Fuzzy"
 ])
 
 # ==============================================================================
@@ -144,7 +150,7 @@ with tab_mapa:
             st.warning("📍 Ponto fora da área de cobertura. Por favor, clique dentro dos limites do Rio Grande do Norte.")
     st.header("Sobre o projeto")
     st.markdown("""
-    Esta plataforma foi desenvolvida para fornecer previsões precisas de irradiação geral horizontal (GHI) e irradiação direta normal (DNI) no estado do Rio Grande do Norte, Brasil. Utilizando um modelo de Random Forest treinado com dados históricos de estações meteorológicas locais, o sistema permite simulações personalizadas com base em condições climáticas específicas e localização geográfica.
+    Esta plataforma foi desenvolvida para fornecer previsões precisas de irradiação geral horizontal (GHI) e irradiação direta normal (DNI) no estado do Rio Grande do Norte, Brasil. Utilizando um modelo de XGBoost treinado com dados históricos de estações meteorológicas locais, o sistema permite simulações personalizadas com base em condições climáticas específicas e localização geográfica.
     """)
 
 # ==============================================================================
@@ -162,16 +168,32 @@ with tab_pontual:
         with c1:
             data = st.date_input("Data da Predição", datetime(2023, 10, 29), format="DD/MM/YYYY")
         with c2:
-            hora = st.time_input("Hora da Predição (HH:MM)", datetime(2023, 10, 29).replace(hour=12, minute=0).time())
+            # Substituímos o time_input por um slider de hora, restrito ao período diurno
+            hora_int = st.slider("Hora da Predição (HH)",
+                                 min_value=7,
+                                 max_value=17,
+                                 value=12, # Padrão
+                                 step=1,
+                                 format="%02d") # Formato de exibição
+            minute_int = st.slider("Minutos da Predição (MM)",
+                                   min_value=0,
+                                   max_value=55,
+                                   value=0, # Padrão
+                                   step=5,
+                                   format="%02d") # Formato de exibição
 
-        temp_ar = st.slider("Temperatura do Ar (°C)", 18.0, 40.0, 28.0)
-        umidade_rel = st.slider("Umidade Relativa (%)", 10.0, 100.0, 70.0)
-        pressao_atm = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0, key="pressao_pontual")
-        precipitacao = st.slider("Precipitação (mm)", 0.0, 50.0, 0.0)
+        # Converte a hora (int) de volta para um objeto 'time' para o resto do script
+        hora = time(hour=hora_int, minute=minute_int)
+
+        with st.expander("Ajustar Parâmetros Climáticos"):
+            temp_ar = st.slider("Temperatura do Ar (°C)", 18.0, 40.0, 28.0)
+            umidade_rel = st.slider("Umidade Relativa (%)", 10.0, 100.0, 70.0)
+            pressao_atm = st.slider("Pressão Atmosférica Estimada (mB)", 980.0, 1050.0, 1010.0, key="pressao_pontual")
+            precipitacao = st.slider("Precipitação (mm)", 0.0, 50.0, 0.0)
 
     timestamp = datetime.combine(data, hora)
 
-    # Construção do dicionário de input usando valores da sidebar e da aba
+    # Construção do dicionário de input
     input_data = {}
     input_data['hora_sin'] = np.sin(2 * np.pi * timestamp.hour / 24.0)
     input_data['hora_cos'] = np.cos(2 * np.pi * timestamp.hour / 24.0)
@@ -201,89 +223,74 @@ with tab_pontual:
     dni_prediction = model_dni.predict(input_df)[0] # DNI
 
     with col2:
-        st.subheader("Resultado da Regressão")
-        st.metric(label="GHI Regressão", value=f"{ghi_prediction:.2f} W/m²")
-        st.metric(label="DNI Regressão", value=f"{dni_prediction:.2f} W/m²")
-        if ghi_prediction < 10:
-            st.info("Condição: Noite / Céu muito encoberto")
-        elif ghi_prediction < 600:
-            st.info("Condição: Nublado / Sol fraco")
-        elif ghi_prediction < 800:
-            st.info("Condição: Céu com nuvens esparsas")
-        else:
-            st.success("Condição: Céu limpo / Sol forte")
-            
-        # ----------- Lógica Fuzzy --------------#
-        try:
-            condicao_valor = avaliar_condicao_solar(ghi_prediction)
-            mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
-            
-            descricao = interpretar_condicao_fuzzy(condicao_valor)
+        st.subheader("Resultado da Predição")
+        metric1, metric2 = st.columns(2)
+        with metric1:
+            st.metric(label="GHI Predito", value=f"{ghi_prediction:.2f} W/m²")
+        with metric2:
+            st.metric(label="DNI Predito", value=f"{dni_prediction:.2f} W/m²")
 
-            if condicao_valor < 40:
-                 st.warning(descricao)
-            elif condicao_valor < 70:
-                  st.info(descricao)
-            else:
-                st.success(descricao)
-        except Exception as e:
-            st.error(f"Erro ao avaliar condição solar: {e}")
-   
-        st.markdown("---")
-        st.subheader("Explorar Dados Reais (2023)")
-        st.markdown(
-            "- A304 - Natal\n"
-            "- A316 - Caicó\n"
-            "- A372 - Macau\n"
-            "- A340 - Apodi\n"
-        )
-
-        # Verifica se a data selecionada é de 2023 e se os dados foram carregados
-        if data.year == 2023 and val_df_full is not None:
+        with st.expander("Ver Detalhes da Condição Solar (Lógica Fuzzy)"):
             try:
-                # Arredonda o timestamp para a hora cheia (ex: 12:30 -> 12:00)
-                selected_timestamp = pd.to_datetime(timestamp.replace(minute=0, second=0, microsecond=0))
+                condicao_valor = avaliar_condicao_solar(ghi_prediction)
+                mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
                 
-                # Filtra o dataframe completo para aquela hora exata
-                real_data_at_hour = val_df_full[val_df_full.index == selected_timestamp]
+                descricao = interpretar_condicao_fuzzy(condicao_valor)
 
-                if not real_data_at_hour.empty:
-                    # Obtém a lista de estações que têm dados para esta hora
-                    station_list = real_data_at_hour['codigo_estacao'].unique()
-                    
-                    # Usamos st.selectbox para o usuário escolher UMA estação
-                    selected_station = st.selectbox(
-                        "Selecione uma Estação para ver os dados reais:",
-                        station_list,
-                        key="pontual_station_select"
-                    )
-                    
-                    if selected_station:
-                        # Filtra os dados para a estação escolhida
-                        station_data = real_data_at_hour[
-                            real_data_at_hour['codigo_estacao'] == selected_station
-                        ].iloc[0] # Pega a primeira (e única) linha
-                        
-                        st.write(f"Dados reais para Estação **{selected_station}** às **{hora.strftime('%H:%M')}**:")
-                        
-                        # Exibe os dados reais (GHI, DNI e features)
-                        c1_real, c2_real, c3_real = st.columns(3)
-                        c1_real.metric(label="GHI Real (W/m²)", value=f"{station_data.get('ghi', 'N/A'):.2f}")
-                        c1_real.metric(label="Temp. Ar (°C)", value=f"{station_data.get('temp_ar', 'N/A'):.2f}")
-                        
-                        c2_real.metric(label="DNI Real (W/m²)", value=f"{station_data.get('dni', 'N/A'):.2f}")
-                        c2_real.metric(label="Umidade Rel. (%)", value=f"{station_data.get('umidade_rel', 'N/A'):.2f}")
-
-                        c3_real.metric(label="Pressão (hPa)", value=f"{station_data.get('pressao_atm_estacao', 'N/A'):.1f}")
-                        c3_real.metric(label="Tipo de Nuvem", value=f"{station_data.get('tipo_nuvem', 'N/A'):.0f}")
+                if condicao_valor < 40:
+                     st.warning(descricao)
+                elif condicao_valor < 70:
+                      st.info(descricao)
                 else:
-                    st.info("Não há dados reais de 2023 disponíveis para esta data e hora.")
-            
+                    st.success(descricao)
             except Exception as e:
-                st.error(f"Erro ao processar dados reais: {e}")
+                st.error(f"Erro ao avaliar condição solar: {e}")
+   
+    # O explorador de dados reais continua fora do expander, o que está correto.
+    st.markdown("---")
+    st.subheader("Explorar Dados Reais (2023)")
+    # ... (o resto do seu código permanece igual) ...
+    st.markdown(
+        "- A304 - Natal\n"
+        "- A316 - Caicó\n"
+        "- A372 - Macau\n"
+        "- A340 - Apodi\n"
+    )
+
+    if data.year == 2023 and val_df_full is not None:
+        try:
+            selected_timestamp = pd.to_datetime(timestamp.replace(minute=0, second=0, microsecond=0))
+            real_data_at_hour = val_df_full[val_df_full.index == selected_timestamp]
+
+            if not real_data_at_hour.empty:
+                station_list = real_data_at_hour['codigo_estacao'].unique()
+                selected_station = st.selectbox(
+                    "Selecione uma Estação para ver os dados reais:",
+                    station_list,
+                    key="pontual_station_select"
+                )
+                
+                if selected_station:
+                    station_data = real_data_at_hour[
+                        real_data_at_hour['codigo_estacao'] == selected_station
+                    ].iloc[0]
+                    
+                    st.write(f"Dados reais para Estação **{selected_station}** às **{hora.strftime('%H:%M')}**:")
+                    c1_real, c2_real, c3_real = st.columns(3)
+                    c1_real.metric(label="GHI Real (W/m²)", value=f"{station_data.get('ghi', 'N/A'):.2f}")
+                    c1_real.metric(label="Temp. Ar (°C)", value=f"{station_data.get('temp_ar', 'N/A'):.2f}")
+                    c2_real.metric(label="DNI Real (W/m²)", value=f"{station_data.get('dni', 'N/A'):.2f}")
+                    c2_real.metric(label="Umidade Rel. (%)", value=f"{station_data.get('umidade_rel', 'N/A'):.2f}")
+                    c3_real.metric(label="Pressão (mB)", value=f"{station_data.get('pressao_atm_estacao', 'N/A'):.1f}")
+                    c3_real.metric(label="Tipo de Nuvem", value=f"{station_data.get('tipo_nuvem', 'N/A'):.0f}")
+            else:
+                st.info("Não há dados reais de 2023 disponíveis para esta data e hora.")
         
-        elif data.year != 2023:
-            st.info("Selecione uma data em 2023 para habilitar o explorador de dados reais.")
+        except Exception as e:
+            st.error(f"Erro ao processar dados reais: {e}")
+    
+    elif data.year != 2023:
+        st.info("Selecione uma data em 2023 para habilitar o explorador de dados reais.")
 
 # ==============================================================================
 # ABA 3: PREVISÃO DIÁRIA
@@ -299,7 +306,7 @@ with tab_diaria:
         temp_meio_dia = st.slider("Temp. ao Meio-Dia (°C)", 25.0, 42.0, 32.0)
         umidade_meio_dia = st.slider("Umidade ao Meio-Dia (%)", 20.0, 100.0, 60.0)
         precipitacao_dia = st.slider("Precipitação Diária (mm)", 0.0, 50.0, 0.0)
-        pressao_atm_dia = st.slider("Pressão Atmosférica Estimada (hPa)", 980.0, 1050.0, 1010.0)
+        pressao_atm_dia = st.slider("Pressão Atmosférica Estimada (mB)", 980.0, 1050.0, 1010.0)
         target_radio = st.radio("Selecione o alvo da previsão:", ('GHI', 'DNI'), index=0, key='target_radio')
 
         # --- LÓGICA DE PREPARAÇÃO DE DADOS REAIS ---
@@ -361,7 +368,7 @@ with tab_diaria:
                     predictions_dia.append(prediction_hora)
 
             df_previsao_dia = pd.DataFrame(
-                {f"{target_radio} Previsto": predictions_dia}, 
+                {f"{target_radio} Predito": predictions_dia}, 
                 index=pd.to_datetime(timestamps_dia)
             )
 
@@ -389,7 +396,7 @@ with tab_diaria:
             color_map = {'GHI': "#F87B1B", 'DNI': '#E6521F'}
             colors_to_use = []
             
-            if f"{target_radio} Previsto" in df_plot.columns:
+            if f"{target_radio} Predito" in df_plot.columns:
                 colors_to_use.append(color_map.get(target_radio, "#FB9E3A"))
             if f"{target_radio} Real" in df_plot.columns:
                 colors_to_use.append("#FCEF91")
@@ -426,7 +433,7 @@ with tab_diaria:
                     max_value=max(daylight_hours),
                     value=12 if 12 in daylight_hours else min(daylight_hours),
                     format="%02d:00",
-                    key="explorer_slider" # Adiciona uma chave para estabilidade
+                    key="explorer_slider"
                 )
                 try:
                     # Usa o DatetimeIndex para criar a máscara de hora
@@ -442,7 +449,7 @@ with tab_diaria:
                         st.metric(label="Umidade Rel. (%)", value=f"{features_at_hour.get('umidade_rel', 'N/A'):.2f}")
                         st.metric(label="Dir. Vento (°)", value=f"{features_at_hour.get('vento_dir', 'N/A'):.0f}")
                     with c3:
-                        st.metric(label="Pressão (hPa)", value=f"{features_at_hour.get('pressao_atm_estacao', 'N/A'):.2f}")
+                        st.metric(label="Pressão (mB)", value=f"{features_at_hour.get('pressao_atm_estacao', 'N/A'):.2f}")
                         st.metric(label="Tipo de Nuvem", value=f"{features_at_hour.get('tipo_nuvem', 'N/A'):.0f}")
                     with c4:
                         st.metric(label="Precipitação (mm)", value=f"{features_at_hour.get('precipitacao', 'N/A'):.2f}")
@@ -468,13 +475,13 @@ with tab_anual:
     st.subheader("Comparativo no Ano de Validação (2023)")
     with st.spinner("Calculando previsões para 2023..."):
         if X_val is not None and y_val is not None:
-            pred_rf_val = pd.DataFrame({
+            pred_val = pd.DataFrame({
                 'ghi': model_ghi.predict(X_val[feature_names]),
                 'dni': model_dni.predict(X_val[feature_names])
             }, index=y_val.index)
             df_monthly = pd.DataFrame({
                 'GHI Real (Média)': y_val['ghi'].resample('ME').mean(),
-                'GHI Previsto (RF)': pred_rf_val['ghi'].resample('ME').mean()
+                'GHI Predito (XGBoost)': pred_val['ghi'].resample('ME').mean()
             })
             st.line_chart(data=df_monthly, height=400, color=['#E6521F', '#FCEF91'], x_label="Data", y_label="GHI (W/m²)") # type: ignore
     
@@ -492,7 +499,7 @@ with tab_anual:
         # Sempre criar os sliders para garantir que user_temp e user_humidity sejam vinculados
         user_temp = st.slider("Temperatura Média Anual (°C)", 20.0, 35.0, default_temp)
         user_humidity = st.slider("Umidade Relativa Média Anual (%)", 40.0, 90.0, default_humidity)
-        pressao_atm_media = st.slider("Pressão Atmosférica Média Estimada (hPa)", 980.0, 1050.0, 1012.0)
+        pressao_atm_media = st.slider("Pressão Atmosférica Média Estimada (mB)", 980.0, 1050.0, 1012.0)
         precipitacao_media = st.slider("Precipitação Média Anual (mm)", 0.0, 2000.0, 800.0)
 
     if st.button(f"Gerar Simulação para {future_year}", type="primary"):
@@ -510,7 +517,7 @@ with tab_anual:
             df_future['umidade_rel'] = user_humidity
             df_future['vento_vel'] = user_wind_speed
             df_future['vento_dir'] = user_wind_dir
-            df_future['tipo_nuvem'] = float(user_cloud_type)
+            df_future['tipo_nuvem'] = user_cloud_type
             df_future['pressao_atm_estacao'] = pressao_atm_media
             df_future['precipitacao'] = precipitacao_media / 8760.0  # Distribui a precipitação anual igualmente por hora
             
@@ -528,6 +535,51 @@ with tab_anual:
             st.write(f"**Insolação Total Mensal Prevista para {future_year} (kWh/m²)**")
             st.area_chart(data=df_kwh_future, height=400, use_container_width=True, color='#E6521F')
 
+# ==============================================================================
+# ABA 4: CHAT COM LLM
+# ==============================================================================
+with tab_chat:
+    st.header("Chatbot do Projeto")
+    st.markdown("Faça perguntas sobre o projeto, os modelos e os resultados")
+
+    with st.form(key="chat_form", clear_on_submit=True):
+            user_prompt = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual modelo teve o menor erro?", key="chat_input")
+            submit_button = st.form_submit_button("Enviar")
+
+    for interaction in reversed(st.session_state.chat_history):
+        with st.chat_message("user"):
+            st.markdown(interaction["question"])
+            
+        with st.chat_message("model"):
+            st.markdown(interaction["answer"])
+            
+            if interaction["images"]:
+                for img_path in interaction["images"]:
+                    if os.path.exists(img_path):
+                        st.image(img_path, caption=f"Gráfico: {img_path}", width="content")
+                    else:
+                        st.warning(f"Imagem {img_path} não encontrada no servidor.")
+
+    if submit_button and user_prompt:
+        with st.spinner("Analisando sua pergunta e buscando gráficos..."):
+            try:
+                api_text, api_images = chat.run_ai(user_prompt)
+                
+                st.session_state.chat_history.append({
+                    "question": user_prompt,
+                    "answer": api_text,
+                    "images": api_images
+                })
+                
+            except Exception as e:
+                error_message = f"Ocorreu um erro ao processar sua pergunta: {e}"
+                st.session_state.chat_history.append({
+                    "question": user_prompt,
+                    "answer": error_message,
+                    "images": []
+                })
+        
+        st.rerun()
 
 # ----------------------------------------------------------
 # ABA 5 — SISTEMA FUZZY COMPLETO

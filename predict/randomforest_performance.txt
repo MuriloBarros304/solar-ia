@@ -2,18 +2,18 @@
 Desempenho do Modelo RandomForest:
 ==================================================
 Target: GHI
-  - Erro Médio Absoluto (MAE): 18.75 W/m²
-  - Raiz do Erro Quadrático Médio (RMSE): 45.23 W/m²
+  - Erro Médio Absoluto (MAE): 18.71 W/m²
+  - Raiz do Erro Quadrático Médio (RMSE): 45.17 W/m²
   - Coeficiente de determinação (R²): 0.9824
 
 --------------------------------------------------
 Target: DNI
   - Erro Médio Absoluto (MAE): 38.10 W/m²
-  - Raiz do Erro Quadrático Médio (RMSE): 79.99 W/m²
-  - Coeficiente de determinação (R²): 0.9412
+  - Raiz do Erro Quadrático Médio (RMSE): 79.89 W/m²
+  - Coeficiente de determinação (R²): 0.9414
 
 ==================================================
 
 Para Contexto:
-  - GHI médio (durante o dia) no set de teste: 524.39 W/m²
-  - DNI médio (durante o dia) no set de teste: 538.70 W/m²
+  - GHI médio (durante o dia) no set de teste: 524.29 W/m²
+  - DNI médio (durante o dia) no set de teste: 538.28 W/m²
