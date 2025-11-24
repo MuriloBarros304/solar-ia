@@ -101,6 +101,41 @@ def plot_var(var):
     ax.grid(True)
     return fig
 
+# ======================================================
+# 5.1 Função para gerar gráfico da variável com linha vertical
+# ======================================================
+def plot_var_com_valor(var_fuzzy, valor):
+    """
+    Plota a variável fuzzy com suas funções de pertinência
+    e uma linha vertical marcando o valor avaliado.
+    """
+    import matplotlib.pyplot as plt
+
+    x = var_fuzzy.universe
+    fig, ax = plt.subplots(figsize=(6, 3))
+
+    # Plota cada termo fuzzy
+    for termo in var_fuzzy.terms:
+        y = var_fuzzy[termo].mf
+        ax.plot(x, y, label=termo)
+
+    # Linha vertical no valor de entrada
+    ax.axvline(valor, color="k", linestyle="--", label=f"valor = {valor:.2f}")
+
+    # Marcações do grau de pertinência
+    for termo in var_fuzzy.terms:
+        pert = fuzz.interp_membership(x, var_fuzzy[termo].mf, valor)
+        ax.plot([valor], [pert], 'ro')
+        ax.text(valor, pert + 0.05, f"{pert:.2f}", fontsize=9)
+
+    ax.set_title(f"Funções de Pertinência – {var_fuzzy.label}")
+    ax.set_xlabel(var_fuzzy.label)
+    ax.set_ylabel("Grau de pertinência")
+    ax.legend()
+    ax.grid(True)
+
+    return fig
+
 
 # ======================================================
 # 6. Função para mostrar gráfico da condição solar

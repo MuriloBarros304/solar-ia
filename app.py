@@ -6,7 +6,9 @@ import folium
 import os
 import chat
 from datetime import datetime, time
-from Fuzzy.solar_condition import avaliar_condicao_solar,interpretar_condicao_fuzzy, hora_sin, hora_cos, tipo_nuvem, temp_ar, condicao_solar, plot_var
+from Fuzzy.solar_condition_mamdani import avaliar_condicao_solar,plot_var_com_valor, interpretar_condicao_fuzzy, hora_sin, hora_cos, tipo_nuvem, temp_ar, condicao_solar
+from Fuzzy.solar_condition_sugeno import avaliar_condicao_solar_sugeno
+
 from streamlit_folium import st_folium
 
 if 'chat_history' not in st.session_state:
@@ -627,12 +629,16 @@ with aba_fuzzy:
     )
 
     if opcao == "hora_sin":
-        st.pyplot(plot_var(hora_sin))
+        st.pyplot(plot_var_com_valor(hora_sin, h_sin))
+
     elif opcao == "hora_cos":
-        st.pyplot(plot_var(hora_cos))
+        st.pyplot(plot_var_com_valor(hora_cos, h_cos))
+
     elif opcao == "tipo_nuvem":
-        st.pyplot(plot_var(tipo_nuvem))
+        st.pyplot(plot_var_com_valor(tipo_nuvem, nuvem))
+
     elif opcao == "temp_ar":
-        st.pyplot(plot_var(temp_ar))
+         t.pyplot(plot_var_com_valor(temp_ar, temp))
+
     elif opcao == "condicao_solar":
-        st.pyplot(plot_var(condicao_solar))
+        st.pyplot(plot_var_com_valor(condicao_solar, resultado))
