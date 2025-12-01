@@ -1,0 +1,65 @@
+======================================================
+       RELATÓRIO DE AVALIAÇÃO DO MODELO HÍBRIDO       
+======================================================
+
+1. MÉTRICAS DE DESEMPENHO (FILTRO DIURNO > 10 W/m²)
+--------------------------------------------------
+--- XGBoost (Diurno) ---
+MAE:  52.19 W/m²
+RMSE: 87.79 W/m²
+R²:   0.9157
+
+--- Mamdani (Diurno) ---
+MAE:  274.47 W/m²
+RMSE: 339.63 W/m²
+R²:   -0.2620
+
+--- Sugeno (Diurno) ---
+MAE:  170.36 W/m²
+RMSE: 205.92 W/m²
+R²:   0.5361
+
+
+2. BASE DE REGRAS FUZZY (MAMDANI)
+--------------------------------------------------
+Total de Regras: 13
+
+Regra 1: IF hora_cos[noite] THEN ghi[zero]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 2: IF hora_cos[horizonte] AND tipo_nuvem[encoberto] THEN ghi[zero]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 3: IF hora_cos[meio_dia] AND tipo_nuvem[limpo] THEN ghi[extremo]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 4: IF hora_cos[meio_dia] AND tipo_nuvem[parcial] THEN ghi[medio_alto]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 5: IF hora_cos[meio_dia] AND tipo_nuvem[encoberto] THEN ghi[baixo]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 6: IF (hora_cos[dia_alto] AND hora_sin[manha]) AND tipo_nuvem[limpo] THEN ghi[extremo]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 7: IF (hora_cos[dia_alto] AND hora_sin[tarde]) AND tipo_nuvem[limpo] THEN ghi[alto]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 8: IF (hora_cos[dia_alto] AND hora_sin[manha]) AND tipo_nuvem[parcial] THEN ghi[medio_alto]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 9: IF (hora_cos[dia_alto] AND hora_sin[tarde]) AND tipo_nuvem[parcial] THEN ghi[medio]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 10: IF hora_cos[dia_alto] AND tipo_nuvem[encoberto] THEN ghi[muito_baixo]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 11: IF (hora_cos[horizonte] AND hora_sin[manha]) AND tipo_nuvem[limpo] THEN ghi[baixo]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 12: IF (hora_cos[horizonte] AND hora_sin[tarde]) AND tipo_nuvem[limpo] THEN ghi[muito_baixo]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax
+Regra 13: IF hora_cos[meio_dia] AND temp_ar[alta] THEN ghi[extremo]
+	AND aggregation function : fmin
+	OR aggregation function  : fmax

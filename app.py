@@ -6,7 +6,7 @@ import folium
 import os
 import chat
 from datetime import datetime, time
-from Fuzzy.solar_condition_mamdani import avaliar_condicao_solar,plot_var_com_valor, interpretar_condicao_fuzzy, hora_sin, hora_cos, tipo_nuvem, temp_ar, condicao_solar
+from Fuzzy.solar_condition_mamdani import avaliar_condicao_solar, plot_var_com_valor, interpretar_condicao_fuzzy, hora_sin, hora_cos, tipo_nuvem, temp_ar, condicao_solar, mostrar_grafico_condicao_solar
 from Fuzzy.solar_condition_sugeno import avaliar_condicao_solar_sugeno
 
 from streamlit_folium import st_folium
@@ -234,8 +234,8 @@ with tab_pontual:
 
         with st.expander("Ver Detalhes da Condição Solar (Lógica Fuzzy)"):
             try:
-                condicao_valor = avaliar_condicao_solar(ghi_prediction)
-                mostrar_grafico_condicao_solar(ghi_prediction)  # mostra o gráfico fuzzy
+                condicao_valor = avaliar_condicao_solar(input_data['hora_sin'], input_data['hora_cos'], input_data['tipo_nuvem'], input_data['temp_ar'])
+                mostrar_grafico_condicao_solar()
                 
                 descricao = interpretar_condicao_fuzzy(condicao_valor)
 
@@ -544,11 +544,8 @@ with tab_chat:
     st.header("Chatbot do Projeto")
     st.markdown("Faça perguntas sobre o projeto, os modelos e os resultados")
 
-    with st.form(key="chat_form", clear_on_submit=True):
-            user_prompt = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual modelo teve o menor erro?", key="chat_input")
-            submit_button = st.form_submit_button("Enviar")
 
-    for interaction in reversed(st.session_state.chat_history):
+    for interaction in st.session_state.chat_history:
         with st.chat_message("user"):
             st.markdown(interaction["question"])
             
@@ -561,6 +558,10 @@ with tab_chat:
                         st.image(img_path, caption=f"Gráfico: {img_path}", width="content")
                     else:
                         st.warning(f"Imagem {img_path} não encontrada no servidor.")
+
+    with st.form(key="chat_form", clear_on_submit=True):
+            user_prompt = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual modelo teve o menor erro?", key="chat_input")
+            submit_button = st.form_submit_button("Enviar")
 
     if submit_button and user_prompt:
         with st.spinner("Analisando sua pergunta e buscando gráficos..."):
@@ -638,7 +639,7 @@ with aba_fuzzy:
         st.pyplot(plot_var_com_valor(tipo_nuvem, nuvem))
 
     elif opcao == "temp_ar":
-         t.pyplot(plot_var_com_valor(temp_ar, temp))
+        st.pyplot(plot_var_com_valor(temp_ar, temp))
 
     elif opcao == "condicao_solar":
         st.pyplot(plot_var_com_valor(condicao_solar, resultado))
