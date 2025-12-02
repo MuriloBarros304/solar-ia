@@ -13,7 +13,7 @@ import joblib
 import os
 
 from Fuzzy.ghi_mamdani import (
-    avaliar_ghi_mamdani, 
+    avaliar_ghi_mamdani,
     hora_sin, hora_cos, tipo_nuvem, temp_ar, ghi, controle_ghi # Adicionado controle_ghi para extrair regras
 )
 from Fuzzy.ghi_sugeno import avaliar_ghi_sugeno
@@ -62,12 +62,12 @@ X_final = X_test[mask_unique]
 y_final = y_test[mask_unique]
 y_pred_xgb_final = y_pred_xgb[mask_unique]
 
-SAMPLE_SIZE = 1000 
+SAMPLE_SIZE = 1000
 X_sample = X_final.iloc[:SAMPLE_SIZE]
 y_sample = y_final.iloc[:SAMPLE_SIZE]
 y_xgb_sample = y_pred_xgb_final[:SAMPLE_SIZE]
 
-print(f"✓ Amostra definida: {len(X_sample)} pontos")
+print(f"Amostra definida: {len(X_sample)} pontos")
 
 # ======================================================
 # 4. EXECUÇÃO DOS SISTEMAS FUZZY
@@ -137,7 +137,7 @@ plt.plot(subset.index, subset['GHI_Real'], 'k-', linewidth=2, label='Real', alph
 plt.plot(subset.index, subset['ML_XGBoost'], 'b--', label='XGBoost', alpha=0.7)
 plt.plot(subset.index, subset['Fuzzy_Mamdani'], 'orange', label='Mamdani', alpha=0.8)
 plt.plot(subset.index, subset['Fuzzy_Sugeno'], 'r:', linewidth=2, label='Sugeno', alpha=0.8)
-plt.title('Comparação Temporal (Zoom)')
+plt.title('Comparação Temporal das Predições de GHI')
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.savefig(f'{OUTPUT_DIR}/series_temporal_ghi.png', dpi=300)
@@ -191,10 +191,10 @@ print("\n[8/8] Gerando relatório de texto (Métricas e Regras)...")
 txt_filename = f'{OUTPUT_DIR}/relatorio_metricas_regras.txt'
 with open(txt_filename, 'w', encoding='utf-8') as f:
     f.write("======================================================\n")
-    f.write("       RELATÓRIO DE AVALIAÇÃO DO MODELO HÍBRIDO       \n")
+    f.write("       RELATÓRIO DE AVALIAÇÃO DO SISTEMA FUZZY        \n")
     f.write("======================================================\n\n")
     
-    f.write("1. MÉTRICAS DE DESEMPENHO (FILTRO DIURNO > 10 W/m²)\n")
+    f.write("1. MÉTRICAS DE DESEMPENHO\n")
     f.write("-" * 50 + "\n")
     for log in metricas_log:
         f.write(log + "\n")
