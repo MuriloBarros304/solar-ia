@@ -1,38 +1,40 @@
 import numpy as np
 
 # ======================================================
-# LÓGICA SUGENO PARA GHI (COM FATOR TÉRMICO)
+# LÓGICA SUGENO PARA GHI
 # ======================================================
 
 PESOS = {
+    # Equações no formato:
+    # y = w1*x1 + w2*x2 + w3*x3 + w4*x4 + b
+    # onde x1, x2, x3 e x4 são as entradas: [hora_sin, hora_cos, tipo_nuvem, temp_ar]
+    # b é o bias (intercepto)
     # --- CENÁRIOS DE MEIO-DIA (PICO) ---
-    # Nota: O usuário definiu chaves com sufixo "_tarde_" para o pico, mantivemos a nomenclatura.
-    
     # Pico Limpo + Frio (Eficiência Máxima) -> Meta: ~950 W/m²
-    "pico_limpo_pico_frio": {
+    "pico_limpo_frio": {
         "w": [0.0, -450.0, -20.0, 6.0], 
         "b": 550.0
     },
     # Pico Limpo + Calor (Perda Térmica) -> Meta: ~880 W/m²
-    "pico_limpo_pico_calor": {
+    "pico_limpo_calor": {
         "w": [0.0, -400.0, -20.0, 2.0], 
         "b": 480.0
     },
 
     # Pico Parcial + Frio -> Meta: ~750 W/m²
-    "pico_parcial_pico_frio": {
+    "pico_parcial_frio": {
         "w": [0.0, -320.0, -20.0, 4.0],
         "b": 300.0
     },
     # Pico Parcial + Calor -> Meta: ~680 W/m²
-    "pico_parcial_pico_calor": {
+    "pico_parcial_calor": {
         "w": [0.0, -280.0, -20.0, 2.0],
         "b": 240.0
     },
 
     # Pico Encoberto (Diferença térmica é pequena aqui)
-    "pico_encoberto_pico_frio": { "w": [0.0, -100.0, -30.0, 1.0], "b": 60.0 },
-    "pico_encoberto_pico_calor": { "w": [0.0, -100.0, -30.0, 0.5], "b": 40.0 },
+    "pico_encoberto_frio": { "w": [0.0, -100.0, -30.0, 1.0], "b": 60.0 },
+    "pico_encoberto_calor": { "w": [0.0, -100.0, -30.0, 0.5], "b": 40.0 },
 
 
     # --- CENÁRIOS DE MANHÃ (Sol Leste) ---
@@ -44,8 +46,8 @@ PESOS = {
     },
     # Manhã Limpa + Calor -> Meta: ~750 W/m²
     "dia_limpo_manha_calor": {
-        "w": [40.0, -400.0, -30.0, 2.0], 
-        "b": 520.0 
+        "w": [40.0, -400.0, -30.0, 2.0],
+        "b": 520.0
     },
 
     # Manhã Parcial
@@ -109,9 +111,9 @@ def calcular_ativacao(h_sin, h_cos, nuvem, temp):
     p_parcial   = gaussian(nuvem, 5.0, 2.5)
     p_encoberto = gaussian(nuvem, 10.0, 2.5)
 
-    # 5. Pertinências de TEMPERATURA (NOVO)
+    # 5. Pertinências de TEMPERATURA
     # Frio: < 20°C (Favorece PV) | Calor: > 30°C (Desfavorece PV)
-    p_frio  = gaussian(temp, 20.0, 10.0) 
+    p_frio  = gaussian(temp, 20.0, 10.0)
     p_calor = gaussian(temp, 35.0, 10.0)
 
     regras = {}
@@ -119,17 +121,17 @@ def calcular_ativacao(h_sin, h_cos, nuvem, temp):
     if p_noite > 0.5:
         return {"noite": 1.0}
 
-    # --- REGRAS COM TEMPERATURA ---
+    # --- REGRAS ---
     
     # PICO (Meio-dia)
-    regras["pico_limpo_pico_frio"]     = p_meio_dia * p_limpo * p_frio
-    regras["pico_limpo_pico_calor"]    = p_meio_dia * p_limpo * p_calor
+    regras["pico_limpo_frio"]     = p_meio_dia * p_limpo * p_frio
+    regras["pico_limpo_calor"]    = p_meio_dia * p_limpo * p_calor
     
-    regras["pico_parcial_pico_frio"]   = p_meio_dia * p_parcial * p_frio
-    regras["pico_parcial_pico_calor"]  = p_meio_dia * p_parcial * p_calor
+    regras["pico_parcial_frio"]   = p_meio_dia * p_parcial * p_frio
+    regras["pico_parcial_calor"]  = p_meio_dia * p_parcial * p_calor
     
-    regras["pico_encoberto_pico_frio"] = p_meio_dia * p_encoberto * p_frio
-    regras["pico_encoberto_pico_calor"]= p_meio_dia * p_encoberto * p_calor
+    regras["pico_encoberto_frio"] = p_meio_dia * p_encoberto * p_frio
+    regras["pico_encoberto_calor"]= p_meio_dia * p_encoberto * p_calor
 
     # MANHÃ
     regras["dia_limpo_manha_frio"]      = p_manha_tarde * p_periodo_manha * p_limpo * p_frio

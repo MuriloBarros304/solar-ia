@@ -57,6 +57,43 @@ Features:
  15  dia_ano_sin
  16  dia_ano_cos
 
+Resumo da engenharia de dados:
+1. Padronização dos dados do INMET
+
+Os arquivos brutos de diferentes estações meteorológicas foram lidos e padronizados.
+Eles possuem formatos heterogêneos, então foram aplicadas correções nos nomes das colunas, conversões de tipos e normalização de unidades.
+O horário é reformatado para permitir a criação de um timestamp completo e consistente.
+Cada estação recebe suas coordenadas geográficas e apenas as variáveis relevantes foram preservadas.
+Após isso, todas as estações foram unificadas em um único conjunto contínuo de dados.
+
+2. Padronização dos dados da NSRDB
+
+Os arquivos anuais foram reunidos para cada estação e depois combinados entre si.
+As variáveis do NSRDB, que possuem nomes próprios, foram renomeadas para um padrão comum.
+É criado um índice temporal a partir da data e hora fornecidas pelo dataset.
+Apenas as variáveis essenciais para modelagem e comparação foram mantidas, e as coordenadas também foram adicionadas.
+
+3. Tratamento de anomalias e qualidade do dado
+
+Durante o período diurno, valores de irradiação fisicamente impossíveis (ou quase nulos) foram identificados e removidos.
+Essas falhas ou anomalias foram corrigidas por interpolação temporal, restaurando a continuidade da série sem inserir saltos abruptos.
+
+4. Integração entre INMET e NSRDB
+
+Os dois conjuntos, agora padronizados e com timestamps consistentes, foram combinados em um DataFrame único utilizando apenas os horários em que ambos possuem dados válidos.
+Isso garante alinhamento perfeito entre variáveis meteorológicas reais e variáveis radiométricas fornecidas pela NSRDB.
+
+5. Criação de variáveis derivadas
+
+Foram adicionadas variáveis de representação temporal, como ciclos diários e sazonais, através de funções periódicas que descrevem o horário e o dia do ano.
+Essas variáveis ajudam modelos de aprendizado a capturar padrões naturais da radiação solar.
+
+6. Filtragem final e organização
+
+Colunas redundantes ou irrelevantes foram removidas.
+O DataFrame final contém apenas os atributos necessários para análise, modelagem e inferência fuzzy.
+Após isso, o conjunto é dividido em períodos representativos para treino, validação e teste.
+
 Treinamento:
 O treinamento foi focado em minimizar o erro do GHI, que é mais útil, pois representa a irradiação global. Foram feitas Random Searchs para buscar os melhores hiperparâmetros possíveis nos dois modelos.
 
@@ -100,7 +137,7 @@ GHI = DNI*cos(θ) + DHI
 
 Modelos
 
-Random Forest: Um modelo foi treinado e seu gráfico de importância de features está em 'importância_rf'.
+Random Forest: Um modelo foi treinado e seu gráfico de importância de features está em 'importância rf'.
 Métricas de desempenho RF Regressor:
 GHI
   - MAE: 19.27 W/m²
@@ -111,7 +148,7 @@ DNI
   - RMSE: 81.62 W/m²
   - R²: 0.9412
 
-XGBoost: Outro modelo foi treinado e seu gráfico de importância está em 'importância xg'.
+XGBoost: Outro modelo foi treinado e seu gráfico de importância está em 'importância xg'. Uma imagem contendo a regressão do dia 01/12/2023 comparada com os dados reais usando este modelo está disponível em "predicão diária xg"
 Métricas de desempenho XGBoost:
 GHI
   - MAE: 19.36 W/m²
@@ -122,12 +159,19 @@ DNI
   - RMSE: 76.75 W/m²
   - R²: 0.9459
 
+Análise
+
+O modelo XGBoost se mostrou ter melhor desempenho, com pouquíssima diferença, mas seu custo computacional extremamente menor que o Random Forest Regressor faz com que ele seja o modelo mais adequado para esta aplicação.
+
+Sobre a página
+
+Com isso, nesta plataforma feita via Streamlit, está disponível a realização de inferências do modelo vencedor (XGBoost) de diversas formas, o usuário pode escolher um local no mapa do RN para realizar a predição de irradiação solar de um horário pontual, de um dia ou de um ano.
 
 Outros Gráficos Disponíveis
 
-Comparação Temporal: O arquivo 'comparação' mostra a comparação entre os valores reais e previstos ao longo do tempo.
+Comparação Temporal: O arquivo 'comparação' mostra a comparação entre os valores reais e preditos ao longo do tempo.
 
-Análise de Erro: O arquivo 'dispersão' mostra um gráfico de dispersão do real vs. previsto, útil para ver o erro do modelo.
+Análise de Erro: O arquivo 'dispersão' mostra um gráfico de dispersão do real vs. predito, útil para ver o erro do modelo.
 
 Instruções para a IA
 
@@ -139,7 +183,8 @@ Cada palavra indicando o nome de um arquivo deve ser mencionada para ser exibida
     # Palavras-chave específicas do modelo
     "importância rf"
     "importância xg"
+    "predição diária xg"
 
-Responda de forma concisa. Se o usuário perguntar sobre o "erro", mencione "dispersão". Se perguntar sobre "desempenho ao longo do tempo", mencione "série temporal" ou "comparação". Se perguntar sobre "quais features são importantes", mencione "importância" e o nome do modelo. Se você já exibiu um gráfico, evite exibir novamente, pois o histórico fica disponível para o usuário, assim ficará repetido caso seja mencionado um gráfico mais de uma vez.
+Responda de forma concisa. Se o usuário perguntar sobre o "erro", mencione "dispersão". Se perguntar sobre "desempenho ao longo do tempo", mencione "comparação". Se perguntar sobre "quais features são importantes", mencione "importância" e o nome do modelo. Se você já exibiu um gráfico, evite exibir novamente, pois o histórico fica disponível para o usuário, assim ficará repetido caso seja mencionado um gráfico mais de uma vez.
 
 FIM DO CONTEXTO

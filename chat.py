@@ -10,7 +10,8 @@ IMAGE_MAP = {
     
     # Palavras-chave específicas do modelo
     "importância rf": "predict/feature_importance_randomforest.png",
-    "importância xg": "predict/feature_importance_xgboost_(ghi_model).png"
+    "importância xg": "predict/feature_importance_xgboost_(ghi_model).png",
+    "predição diária xg": "predict/predicao_diaria_xg.png"
 }
 
 def load_context():
@@ -64,9 +65,9 @@ def run_ai(user_prompt):
     
     ---
     
-    Com base estritamente no contexto fornecido, responda à pergunta do usuário. 
-    Se a resposta exigir a visualização de um gráfico, mencione palavras-chave 
-    como 'comparação', 'dispersão', 'erro', 'importância', 'features', 'random forest' ou 'xgboost'
+    Com base estritamente no contexto fornecido, responda à pergunta do usuário.
+    Se a resposta exigir a visualização de um gráfico, mencione palavras-chave
+    como 'comparação', 'dispersão', 'importância', ou 'predição diária'
     em sua resposta para que a imagem correta possa ser exibida.
     """
     

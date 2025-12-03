@@ -4,6 +4,7 @@ com as predições de Machine Learning (XGBoost).
 Métrica unificada: W/m² (Irradiação Global Horizontal)
 """
 
+import matplotlib
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -14,7 +15,7 @@ import os
 
 from Fuzzy.ghi_mamdani import (
     avaliar_ghi_mamdani,
-    hora_sin, hora_cos, tipo_nuvem, temp_ar, ghi, controle_ghi # Adicionado controle_ghi para extrair regras
+    hora_sin, hora_cos, tipo_nuvem, temp_ar, ghi, controle_ghi
 )
 from Fuzzy.ghi_sugeno import avaliar_ghi_sugeno
 
@@ -27,13 +28,13 @@ OUTPUT_DIR = 'predict/fuzzy_evaluation'
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 print("=" * 70)
-print("AVALIAÇÃO DE SISTEMAS HÍBRIDOS: ML vs FUZZY (GHI W/m²)")
+print("AVALIAÇÃO: ML vs FUZZY (GHI W/m²)")
 print("=" * 70)
 
 # ======================================================
 # 1. CARREGAMENTO DOS DADOS
 # ======================================================
-print("\n[1/8] Carregando dados e modelos...")
+print("\n[1/8] Carregando dados e models...")
 X_TEST_PATH = 'data/X_test.parquet'
 Y_TEST_PATH = 'data/y_test.parquet'
 
@@ -97,10 +98,9 @@ for idx, row in X_sample.iterrows():
 
 df_eval = pd.DataFrame(index=X_sample.index)
 df_eval['GHI_Real'] = y_sample['ghi']
-df_eval['ML_XGBoost'] = y_xgb_sample
-df_eval['Fuzzy_Mamdani'] = mamdani_preds
-df_eval['Fuzzy_Sugeno'] = sugeno_preds
-df_eval['Tipo_Nuvem'] = X_sample['tipo_nuvem']
+df_eval['XGBoost'] = y_xgb_sample
+df_eval['Mamdani'] = mamdani_preds
+df_eval['Sugeno'] = sugeno_preds
 
 # ======================================================
 # 5. CÁLCULO DE MÉTRICAS
@@ -115,15 +115,15 @@ def calc_metrics(y_true, y_pred, name):
     rmse = np.sqrt(mean_squared_error(y_true, y_pred))
     r2 = r2_score(y_true, y_pred)
     
-    msg = f"--- {name} (Diurno) ---\nMAE:  {mae:.2f} W/m²\nRMSE: {rmse:.2f} W/m²\nR²:   {r2:.4f}\n"
+    msg = f"--- {name} ---\nMAE:  {mae:.2f} W/m²\nRMSE: {rmse:.2f} W/m²\nR²:   {r2:.4f}\n"
     print(msg)
     metricas_log.append(msg)
     
     return mae, rmse, r2
 
-mae_ml, rmse_ml, r2_ml = calc_metrics(df_diurno['GHI_Real'], df_diurno['ML_XGBoost'], "XGBoost")
-mae_mam, rmse_mam, r2_mam = calc_metrics(df_diurno['GHI_Real'], df_diurno['Fuzzy_Mamdani'], "Mamdani")
-mae_sug, rmse_sug, r2_sug = calc_metrics(df_diurno['GHI_Real'], df_diurno['Fuzzy_Sugeno'], "Sugeno")
+mae_ml, rmse_ml, r2_ml = calc_metrics(df_diurno['GHI_Real'], df_diurno['XGBoost'], "XGBoost")
+mae_mam, rmse_mam, r2_mam = calc_metrics(df_diurno['GHI_Real'], df_diurno['Mamdani'], "Mamdani")
+mae_sug, rmse_sug, r2_sug = calc_metrics(df_diurno['GHI_Real'], df_diurno['Sugeno'], "Sugeno")
 
 # ======================================================
 # 6. GERAÇÃO DE GRÁFICOS
@@ -134,54 +134,132 @@ print("\n[6/8] Gerando gráficos comparativos...")
 plt.figure(figsize=(14, 6))
 subset = df_eval.iloc[50:150]
 plt.plot(subset.index, subset['GHI_Real'], 'k-', linewidth=2, label='Real', alpha=0.8)
-plt.plot(subset.index, subset['ML_XGBoost'], 'b--', label='XGBoost', alpha=0.7)
-plt.plot(subset.index, subset['Fuzzy_Mamdani'], 'orange', label='Mamdani', alpha=0.8)
-plt.plot(subset.index, subset['Fuzzy_Sugeno'], 'r:', linewidth=2, label='Sugeno', alpha=0.8)
+plt.plot(subset.index, subset['XGBoost'], 'b--', label='XGBoost', alpha=0.7)
+plt.plot(subset.index, subset['Mamdani'], 'orange', label='Mamdani', alpha=0.8)
+plt.plot(subset.index, subset['Sugeno'], 'r:', linewidth=2, label='Sugeno', alpha=0.8)
 plt.title('Comparação Temporal das Predições de GHI')
 plt.legend()
 plt.grid(True, alpha=0.3)
 plt.savefig(f'{OUTPUT_DIR}/series_temporal_ghi.png', dpi=300)
 plt.close()
 
+# Scatter Plots
+plt.figure(figsize=(18, 5))
+models = ['XGBoost', 'Mamdani', 'Sugeno']
+colors = ['b--', 'orange', 'r:']
+for i, model in enumerate(models, 1):
+    plt.subplot(1, 3, i)
+    plt.scatter(df_diurno['GHI_Real'], df_diurno[model], alpha=0.4)
+    plt.plot([0, 1000], [0, 1000], colors[i-1], label=model, alpha=0.7)
+    plt.title(f'Real vs. {model}')
+    plt.xlabel('GHI Real (W/m²)')
+    plt.ylabel(f'GHI Predito ({model})')
+    plt.xlim(0, 1000)
+    plt.ylim(0, 1000)
+    plt.grid(True, alpha=0.3)
+plt.tight_layout()
+plt.savefig(f'{OUTPUT_DIR}/scatter_real_vs_predito.png', dpi=300)
+plt.close()
+
 # Barras Métricas
 plt.figure(figsize=(10, 6))
-modelos = ['XGBoost', 'Mamdani', 'Sugeno']
 maes = [mae_ml, mae_mam, mae_sug]
 rmses = [rmse_ml, rmse_mam, rmse_sug]
-x = np.arange(len(modelos))
+x = np.arange(len(models))
 w = 0.35
 plt.bar(x - w/2, maes, w, label='MAE', color=['#90CAF9', '#FFCC80', '#EF9A9A'])
 plt.bar(x + w/2, rmses, w, label='RMSE', color=['#1976D2', '#F57C00', '#D32F2F'])
-plt.xticks(x, modelos)
+plt.xticks(x, models)
 plt.legend()
 plt.grid(axis='y', alpha=0.3)
 plt.savefig(f'{OUTPUT_DIR}/barras_metricas.png', dpi=300)
 plt.close()
 
 # ======================================================
-# 7. SALVAMENTO INDIVIDUAL DE IMAGENS E RELATÓRIO
+# 7. SALVANDO AS FUNÇÕES DE PERTINÊNCIA (INPUTS E SAÍDA)
 # ======================================================
-print("\n[7/8] Salvando funções de pertinência individuais...")
+matplotlib.use('Agg') # Garante que não abra janelas
 
-# Lista de variáveis para plotar
-variaveis_fuzzy = [
-    (hora_sin, 'Input - Ciclo Diário (Seno)', 'pertinencia_hora_sin.png'),
-    (hora_cos, 'Input - Dia_Noite (Cosseno)', 'pertinencia_hora_cos.png'),
-    (tipo_nuvem, 'Input - Cobertura de Nuvens', 'pertinencia_nuvens.png'),
-    (temp_ar, 'Input - Temperatura do Ar', 'pertinencia_temp.png'),
-    (ghi, 'Output - GHI (W_m2)', 'pertinencia_ghi_output.png')
+print("\n[7/8] Salvando funções de pertinência (Modo Manual)...")
+
+# Lista das variáveis
+variaveis_entrada_fuzzy = [
+    (hora_sin,  'Input - Ciclo Diário (Seno)'),
+    (hora_cos,  'Input - Dia/Noite (Cosseno)'),
+    (tipo_nuvem,'Input - Cobertura de Nuvens'),
+    (temp_ar,   'Input - Temperatura do Ar')
 ]
 
-for var, titulo, filename in variaveis_fuzzy:
-    try:
-        var.view()
-        # Captura a figura atual gerada pelo skfuzzy
-        plt.title(titulo)
-        plt.savefig(f'{OUTPUT_DIR}/{filename}', dpi=300, bbox_inches='tight')
-        plt.close()
-        print(f"  -> Salvo: {filename}")
-    except Exception as e:
-        print(f"  -> Erro ao salvar {filename}: {e}")
+# Configuração da Grade de Subplots
+n = len(variaveis_entrada_fuzzy)
+cols = 2
+rows = int(np.ceil(n / cols))
+
+fig, axes = plt.subplots(rows, cols, figsize=(16, 5 * rows))
+axes = axes.flatten()
+
+# Cores para as linhas (opcional, para ficar bonito)
+colors = ['b', 'g', 'r', 'c', 'm', 'y', 'k']
+
+n_vars = len(variaveis_entrada_fuzzy)
+
+for i, (var, titulo) in enumerate(variaveis_entrada_fuzzy):
+    ax = axes[i]
+    
+    # --- AQUI ESTÁ A MUDANÇA MÁGICA ---
+    # Em vez de var.view(ax=ax), nós iteramos sobre os termos
+    # var.terms contém as etiquetas ('baixa', 'media', etc.)
+    # var.universe contém o eixo X
+    # var[label].mf contém o eixo Y (membership function)
+    
+    color_idx = 0
+    for label in var.terms:
+        # Pega a cor atual da lista ciclicamente
+        cor = colors[color_idx % len(colors)]
+        
+        # Plota a linha manualmente
+        ax.plot(var.universe, var[label].mf, label=label, linewidth=2, color=cor)
+        
+        # Preenche embaixo da curva (opcional, igual ao view padrão)
+        ax.fill_between(var.universe, var[label].mf, alpha=0.1, color=cor)
+        
+        color_idx += 1
+
+    ax.set_title(titulo, fontsize=12, fontweight='bold')
+    ax.legend(loc='upper right', fontsize=9)
+    ax.grid(True, alpha=0.3)
+    ax.set_ylim(-0.05, 1.05) # Margem para ver bem o topo e base
+
+# Remove eixos vazios se houver
+for j in range(n_vars, len(axes)):
+    fig.delaxes(axes[j])
+
+plt.tight_layout()
+plt.savefig(f"{OUTPUT_DIR}/fuzzy_inputs.png", dpi=300, bbox_inches='tight')
+plt.close(fig)
+print("  -> Salvo: fuzzy_inputs.png")
+
+# --- 7.2 Saída (Também manual para garantir consistência) ---
+fig2, ax2 = plt.subplots(figsize=(10, 6))
+
+# Plotando GHI manualmente
+color_idx = 0
+for label in ghi.terms:
+    cor = colors[color_idx % len(colors)]
+    ax2.plot(ghi.universe, ghi[label].mf, label=label, linewidth=2, color=cor)
+    ax2.fill_between(ghi.universe, ghi[label].mf, alpha=0.1, color=cor)
+    color_idx += 1
+
+ax2.set_title("Output - GHI (W/m²)", fontsize=14, fontweight='bold')
+ax2.legend()
+ax2.grid(True, alpha=0.3)
+ax2.set_ylim(-0.05, 1.05)
+
+plt.tight_layout()
+plt.savefig(f"{OUTPUT_DIR}/fuzzy_output.png", dpi=300, bbox_inches='tight')
+plt.close(fig2)
+
+print("  -> Salvo: fuzzy_output.png")
 
 # ======================================================
 # 8. GERAR RELATÓRIO TXT
@@ -199,7 +277,7 @@ with open(txt_filename, 'w', encoding='utf-8') as f:
     for log in metricas_log:
         f.write(log + "\n")
     
-    f.write("\n2. BASE DE REGRAS FUZZY (MAMDANI)\n")
+    f.write("\n2. BASE DE REGRAS FUZZY\n")
     f.write("-" * 50 + "\n")
     # materializa as regras em uma lista para suportar len() e múltiplas iterações
     regras = list(controle_ghi.rules)

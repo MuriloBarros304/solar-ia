@@ -3,7 +3,7 @@ import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
 # ======================================================
-# 1. DEFINIÇÃO DAS VARIÁVEIS (REFINAMENTO ESTRUTURAL)
+# 1. DEFINIÇÃO DAS VARIÁVEIS
 # ======================================================
 
 # HORA COSSENO (Elevação Solar)
@@ -23,16 +23,12 @@ tipo_nuvem = ctrl.Antecedent(np.linspace(0, 10, 200), 'tipo_nuvem')
 temp_ar = ctrl.Antecedent(np.linspace(10, 45, 200), 'temp_ar')
 
 # OUTPUT: GHI (W/m²)
-# Universo estendido para 1200 para permitir que o centróide atinja picos de 1000+
 ghi = ctrl.Consequent(np.linspace(0, 1000, 1000), 'ghi', defuzzify_method='centroid')
 
 
 # ======================================================
-# 2. FUNÇÕES DE PERTINÊNCIA (ALTA SIMETRIA E OVERLAP)
+# 2. FUNÇÕES DE PERTINÊNCIA 
 # ======================================================
-# A chave para o Mamdani funcionar bem é a sobreposição (overlap).
-# Se um conjunto termina onde o outro começa, cria-se "buracos" na lógica.
-# Aqui usamos sobreposição de ~50%.
 
 # --- HORA_COS (Elevação) ---
 # Foco na região negativa (dia).
@@ -61,7 +57,7 @@ temp_ar['quente']   = fuzz.trapmf(temp_ar.universe, [25, 32, 45, 45])
 
 
 # --- GHI OUTPUT ---
-ghi['zero']        = fuzz.trimf(ghi.universe, [0, 0, 10]) 
+ghi['zero']        = fuzz.trimf(ghi.universe, [0, 0, 10])
 ghi['muito_baixo'] = fuzz.trimf(ghi.universe, [10, 150, 300])
 ghi['baixo']       = fuzz.trimf(ghi.universe, [200, 350, 500])
 ghi['medio']       = fuzz.trimf(ghi.universe, [400, 550, 700])
@@ -71,53 +67,51 @@ ghi['extremo']     = fuzz.trimf(ghi.universe, [940, 1000, 1000])
 
 
 # ======================================================
-# 3. BASE DE REGRAS (MATRIZ LÓGICA COMPLETA)
+# 3. BASE DE REGRAS
 # ======================================================
 
 regras = []
 
-# --- GRUPO 1: BLOQUEIO TOTAL (Prioridade Máxima) ---
+# Noite ou Encoberto Total
 regras.append(ctrl.Rule(hora_cos['noite'], ghi['zero']))
 regras.append(ctrl.Rule(hora_cos['baixo'] & tipo_nuvem['encoberto'], ghi['zero']))
 
-# --- GRUPO 2: ZÊNITE (MEIO-DIA) ---
-# Sol a pino (-1). Potencial máximo.
-# Limpo
-regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['limpo'] & temp_ar['conforto'], ghi['extremo'])) # Frio ajuda
-regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['limpo'] & temp_ar['quente'], ghi['muito_alto'])) # Calor atrapalha um pouco
+# Pico Limpo
+regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['limpo'] & temp_ar['conforto'], ghi['extremo']))     # Frio = Eficiência Max
+regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['limpo'] & temp_ar['quente'], ghi['muito_alto']))   # Calor = Perda leve
 
-# Parcial
-regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['parcial'], ghi['alto']))
+# Pico Parcial
+regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['parcial'] & temp_ar['conforto'], ghi['alto']))     # Nuvens + Frio
+regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['parcial'] & temp_ar['quente'], ghi['medio']))      # Nuvens + Calor
 
-# Encoberto
-regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['encoberto'], ghi['baixo']))
+# Pico Encoberto
+regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['encoberto'] & temp_ar['conforto'], ghi['baixo']))
+regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['encoberto'] & temp_ar['quente'], ghi['muito_baixo']))
 
-# --- GRUPO 3: SOL ALTO (MANHÃ/TARDE - ~45°) ---
-# Aqui entra a assimetria do Seno (Manhã rende mais que Tarde)
+# Manhã Limpa (Geralmente a melhor hora depois do meio dia)
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['manha'] & tipo_nuvem['limpo'] & temp_ar['conforto'], ghi['muito_alto']))
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['manha'] & tipo_nuvem['limpo'] & temp_ar['quente'], ghi['alto']))
 
-# Manhã (Painel frio, atmosfera limpa)
-regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['manha'] & tipo_nuvem['limpo'], ghi['muito_alto']))
-regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['manha'] & tipo_nuvem['parcial'], ghi['medio']))
+# Manhã Parcial
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['manha'] & tipo_nuvem['parcial'] & temp_ar['conforto'], ghi['medio']))
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['manha'] & tipo_nuvem['parcial'] & temp_ar['quente'], ghi['baixo']))
 
-# Tarde (Painel quente, turbulência) - Penalidade leve
-regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['tarde'] & tipo_nuvem['limpo'], ghi['alto']))
-regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['tarde'] & tipo_nuvem['parcial'], ghi['medio'])) # Mantém médio, mas o centróide cairá um pouco pela sobreposição
+# Tarde Limpa (Sofre mais com calor/turbidez que a manhã)
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['tarde'] & tipo_nuvem['limpo'] & temp_ar['conforto'], ghi['alto']))
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['tarde'] & tipo_nuvem['limpo'] & temp_ar['quente'], ghi['medio']))
 
-# Encoberto (Indifere horário)
+# Tarde Parcial
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['tarde'] & tipo_nuvem['parcial'] & temp_ar['conforto'], ghi['baixo']))
+regras.append(ctrl.Rule(hora_cos['alto'] & hora_sin['tarde'] & tipo_nuvem['parcial'] & temp_ar['quente'], ghi['muito_baixo']))
+
+# Tarde Encoberto (e Manhã Encoberto - Catch All)
 regras.append(ctrl.Rule(hora_cos['alto'] & tipo_nuvem['encoberto'], ghi['muito_baixo']))
 
-# --- GRUPO 4: SOL BAIXO (HORIZONTE) ---
-# Nascer/Pôr do sol. A atmosfera filtra muito a luz.
+# Nascer (Seno Manhã)
+regras.append(ctrl.Rule(hora_cos['baixo'] & hora_sin['manha'] & (tipo_nuvem['limpo'] | tipo_nuvem['parcial']), ghi['baixo']))
 
-# Limpo
-regras.append(ctrl.Rule(hora_cos['baixo'] & tipo_nuvem['limpo'], ghi['baixo']))
-
-# Parcial
-regras.append(ctrl.Rule(hora_cos['baixo'] & tipo_nuvem['parcial'], ghi['muito_baixo']))
-
-# --- GRUPO 5: CONDIÇÕES EXTREMAS (REFORÇO) ---
-# Se estiver muito limpo e for meio dia, força Extremo independente da temperatura (para garantir picos)
-regras.append(ctrl.Rule(hora_cos['zenite'] & tipo_nuvem['limpo'], ghi['extremo']))
+# Pôr (Seno Tarde) - Rende menos
+regras.append(ctrl.Rule(hora_cos['baixo'] & hora_sin['tarde'] & (tipo_nuvem['limpo'] | tipo_nuvem['parcial']), ghi['muito_baixo']))
 
 # Compilação
 controle_ghi = ctrl.ControlSystem(regras)
