@@ -255,7 +255,7 @@ with tab_pontual:
     st.markdown(
         "- A304 - Natal\n"
         "- A316 - Caicó\n"
-        "- A372 - Macau\n"
+        "- A372 - Ipanguaçu\n"
         "- A340 - Apodi\n"
     )
 

@@ -35,8 +35,8 @@ INMET:
 - Temperatura do ar (°C)
 - Timestamp
 
-Totalizando 262752 linhas
-Algumas features foram retiradas do dataset pois tinham dependência linear com outras features e/ou com targets, ou simplesmente não eram úteis, como no caso do código de estação. A feature mais importante para todos os modelos é hora_cos, que fica com proporcionalidade negativa com os targets, pois são cosenóides centralizadas em 12h, o inverso da irradiação solar.
+Totalizando 262752 linhas após o tratamento dos dados
+Algumas features foram retiradas do dataset pois tinham dependência linear com outras features e/ou com targets, ou simplesmente não eram úteis, como no caso do código de estação. A feature mais importante para todos os modelos é hora_cos, que fica com proporcionalidade negativa com os targets, pois são cosenóides centralizadas em 12h, o inverso da irradiação solar. GHI e DNI possuem correlação matemática, mas isso entre targets em árvores de decisão (RF/XGB) é inofensiva, pois as estruturas de decisão baseadas nas features climáticas tendem a explicar a variação de ambas as irradiâncias simultaneamente.
 
 Features:
  0   codigo_estacao (retirada para treinamento)
@@ -57,7 +57,19 @@ Features:
  15  dia_ano_sin
  16  dia_ano_cos
 
-Resumo da engenharia de dados:
+Resumo do tratamento dos dados:
+
+Rank Estação % Nulos Internos
+1 Natal 30.17%
+2 Caicó 35.88%
+3 Ipanguaçu 38.53%
+4 Apodi 40.00%
+5 Macau 42.84%
+6 Mossoró 49.32%
+7 Santa Cruz 52.72%
+
+Foram incluídas as 4 estações com menos nulos: Natal, Caicó, Ipanguaçu e Apodi.
+
 1. Padronização dos dados do INMET
 
 Os arquivos brutos de diferentes estações meteorológicas foram lidos e padronizados.
@@ -91,49 +103,8 @@ Essas variáveis ajudam modelos de aprendizado a capturar padrões naturais da r
 6. Filtragem final e organização
 
 Colunas redundantes ou irrelevantes foram removidas.
-O DataFrame final contém apenas os atributos necessários para análise, modelagem e inferência fuzzy.
+O DataFrame final contém apenas os atributos necessários para análise, modelagem e inferência.
 Após isso, o conjunto é dividido em períodos representativos para treino, validação e teste.
-
-Treinamento:
-O treinamento foi focado em minimizar o erro do GHI, que é mais útil, pois representa a irradiação global. Foram feitas Random Searchs para buscar os melhores hiperparâmetros possíveis nos dois modelos.
-
-Treino: 2018 a 2022, 175200 linhas (71.4%)
-Validação: 2023, 35040 linhas (14.3%)
-Teste: 2024, 35136 linhas (14.3%)
-12 features, 2 targets
-
-Hiperparâmetros:
-RF(
-    n_estimators=355,    # Número de árvores na floresta (ajustado após tuning)
-    n_jobs=-1,           # Usa todos os núcleos da CPU
-    random_state=42,     # Garante que os resultados sejam reproduzíveis.
-    verbose=2,           # Mostra o progresso do treinamento
-    max_depth=21,        # Profundidade máxima das árvores
-    max_features=0.82,   # Cada árvore verá 82% das features
-    max_samples=0.87,    # Cada árvore verá 87% dos dados de treino (similar ao subsample do XGBoost)
-    min_samples_split=2, # Mínimo de amostras para dividir um nó
-    min_samples_leaf=1   # Mínimo de amostras em um nó folha (para regularização)
-)
-XGB(
-    n_estimators=800,          # Um número alto de estimadores
-    learning_rate=0.05,        # Taxa de aprendizado
-    n_jobs=-1,                 # Usa todos os núcleos da CPU
-    random_state=42,
-    early_stopping_rounds=50,  # Para o treino se não houver melhora em 50 rodadas
-    max_depth=9,               # Profundidade máxima das árvores
-    subsample=0.9,             # Amostra 90% dos dados para cada árvore
-    colsample_bytree=0.93      # Amostra 80% das features para cada árvore
-)
-
-Fórmulas úteis:
-hora_cos = cos(2 * pi * hora / 24)
-hora_sin = sin(2 * pi * hora / 24)
-dia_ano_cos = cos(2 * pi * dia_do_ano / 365.25)
-dia_ano_sin = sin(2 * pi * dia_do_ano / 365.25)
-GHI (Global Horizontal Irradiance)
-DNI (Direct Normal Irradiance)
-DHI (Diffuse Normal Irradiance)
-GHI = DNI*cos(θ) + DHI
 
 Modelos
 
@@ -148,16 +119,69 @@ DNI
   - RMSE: 81.62 W/m²
   - R²: 0.9412
 
-XGBoost: Outro modelo foi treinado e seu gráfico de importância está em 'importância xg'. Uma imagem contendo a regressão do dia 01/12/2023 comparada com os dados reais usando este modelo está disponível em "predicão diária xg"
+XGBoost: Outro modelo foi treinado e seu gráfico de importância está em 'importância xg'. Uma imagem contendo a regressão do dia 01/12/2023 comparada com os dados reais usando este modelo está disponível em "predicão diária xg", mas datas e locais personalizados podem ser inferidos nas abas do dashboard Streamlit, todas as aplicações estão usando XGBoost. Este modelo não suporta mais de um target nativamente, por isso há duas instâncias de XG neste projeto, uma para cada target.
 Métricas de desempenho XGBoost:
 GHI
-  - MAE: 19.36 W/m²
-  - RMSE: 43.60 W/m²
-  - R²: 0.9836
+  - MAE: 19.37 W/m²
+  - RMSE: 43.45 W/m²
+  - R²: 0.9837
 DNI
-  - MAE: 39.82 W/m²
-  - RMSE: 76.75 W/m²
-  - R²: 0.9459
+  - MAE: 39.46 W/m²
+  - RMSE: 76.98 W/m²
+  - R²: 0.9456
+
+Treinamento:
+O treinamento foi focado em minimizar o erro do GHI, que é mais útil, pois representa a irradiação global. Foram feitas Random Searchs com o RandomizedSearchCV e validação cruzada de 3 folds para buscar os melhores hiperparâmetros possíveis nos dois modelos.
+
+Treino: 2018 a 2022, 175200 linhas (71.4%)
+Validação: 2023, 35040 linhas (14.3%)
+Teste: 2024, 35136 linhas (14.3%)
+12 features, 2 targets
+
+Hiperparâmetros:
+RF(
+    n_estimators=355,
+    n_jobs=-1,
+    random_state=42,
+    verbose=2,
+    max_depth=21,
+    max_features=0.82,
+    max_samples=0.87,
+    min_samples_split=2,
+    min_samples_leaf=1
+)
+XGB (GHI) (
+    n_estimators=800,
+    learning_rate=0.05,
+    n_jobs=-1,
+    random_state=42,
+    early_stopping_rounds=50,
+    max_depth=9,
+    subsample=0.9,
+    colsample_bytree=0.93
+)
+
+XGB (DNI) (
+    n_estimators=859,
+    learning_rate=0.01,
+    n_jobs=-1,
+    random_state=42,
+    early_stopping_rounds=50,
+    max_depth=7,
+    subsample=0.844,
+    gamma=0.469,
+    colsample_bytree=0.889
+)
+
+Fórmulas úteis:
+hora_cos = cos(2 * pi * hora / 24)
+hora_sin = sin(2 * pi * hora / 24)
+dia_ano_cos = cos(2 * pi * dia_do_ano / 365.25)
+dia_ano_sin = sin(2 * pi * dia_do_ano / 365.25)
+GHI (Global Horizontal Irradiance)
+DNI (Direct Normal Irradiance)
+DHI (Diffuse Normal Irradiance)
+GHI = DNI*cos(θ) + DHI
 
 Análise
 
@@ -175,7 +199,7 @@ Análise de Erro: O arquivo 'dispersão' mostra um gráfico de dispersão do rea
 
 Instruções para a IA
 
-Cada palavra indicando o nome de um arquivo deve ser mencionada para ser exibida ao usuário a medida que for solicitadas informações em que as imagens sejam úteis. No total são 4:
+Cada palavra indicando o nome de um arquivo deve ser mencionada para ser exibida ao usuário à medida que forem solicitadas informações em que as imagens sejam úteis. No total são 5:
     # Palavras-chave genéricas
     "comparação"
     "dispersão"

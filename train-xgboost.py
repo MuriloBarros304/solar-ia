@@ -3,6 +3,8 @@ import pandas as pd
 import time
 import joblib
 
+abs_path = '/Users/User/Documents/IA - Solar/solar-ia/'
+
 print("Carregando os conjuntos de treino e validação...")
 try:
     X_train = pd.read_parquet('data/X_train.parquet', engine='fastparquet')
@@ -14,7 +16,6 @@ except FileNotFoundError:
     print("ERRO: Arquivos de treino/validação não encontrados. Execute o script de separação de dados primeiro.")
     exit()
 
-# XGBoost pode treinar um modelo para cada alvo separadamente.
 xgb_model_ghi = xgb.XGBRegressor(
     n_estimators=800,          # Começamos com um número alto de árvores
     learning_rate=0.05,        # Taxa de aprendizado
@@ -26,16 +27,18 @@ xgb_model_ghi = xgb.XGBRegressor(
     colsample_bytree=0.93      # Amostra 80% das features para cada árvore
 )
 
-# Faremos o mesmo para o DNI
+
+    # 'colsample_bytree': np.float64(0.8887995089067299), 'gamma': np.float64(0.4692763545078751), 'learning_rate': np.float64(0.010155753168202867), 'max_depth': 7, 'min_child_weight': 1, 'n_estimators': 859, 'subsample': np.float64(0.8446612641953124)
 xgb_model_dni = xgb.XGBRegressor(
-    n_estimators=800,          # Começamos com um número alto de árvores
-    learning_rate=0.05,        # Taxa de aprendizado
-    n_jobs=-1,                 # Usa todos os núcleos da CPU
+    n_estimators=859,
+    learning_rate=0.01,
+    n_jobs=-1,
     random_state=42,
-    early_stopping_rounds=50,  # Para o treino se não houver melhora em 50 rodadas
-    max_depth=9,               # Profundidade máxima das árvores
-    subsample=0.9,             # Amostra 90% dos dados para cada árvore
-    colsample_bytree=0.93      # Amostra 80% das features para cada árvore
+    early_stopping_rounds=50,
+    max_depth=7,
+    subsample=0.844,
+    gamma=0.469,
+    colsample_bytree=0.889
 )
 
 print("\nIniciando o treinamento do modelo... (Isso pode levar alguns minutos)")
@@ -60,6 +63,7 @@ pred_df = pd.DataFrame({
 
 # Salvar o modelo treinado para uso futuro
 print("\nSalvando o modelo XGBoost treinado...")
-joblib.dump(xgb_model_ghi, '/Users/User/Documents/IA - Solar/solar-ia/training/xgb_model_ghi.joblib')
-joblib.dump(xgb_model_dni, '/Users/User/Documents/IA - Solar/solar-ia/training/xgb_model_dni.joblib')
+# joblib.dump(xgb_model_ghi, abs_path + 'training/xgb_model_ghi.joblib')
+joblib.dump(xgb_model_ghi, 'training/xgb_model_ghi.joblib')
+joblib.dump(xgb_model_dni, 'training/xgb_model_dni.joblib')
 print("Modelos salvos como 'xgb_model_ghi.joblib' e 'xgb_model_dni.joblib'")
