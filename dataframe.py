@@ -9,10 +9,12 @@ import numpy as np
 HORA_INICIO_DIA = 7
 HORA_FIM_DIA = 17
 LIMITE_GHI_ANOMALO = 10
+ABSOLUTE_PATH = '/Users/User/Documents/IA - Solar/solar-ia/'
 
 try:
-    df_inmet = pd.read_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/df_inmet.parquet', engine='fastparquet')
-    df_nsrdb = pd.read_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/df_nsrdb.parquet', engine='fastparquet')
+    # df_inmet = pd.read_parquet(ABSOLUTE_PATH + 'data/df_inmet.parquet', engine='fastparquet')
+    df_inmet = pd.read_parquet('data/df_inmet.parquet', engine='fastparquet')
+    df_nsrdb = pd.read_parquet('data/df_nsrdb.parquet', engine='fastparquet')
     print("DataFrames carregados com sucesso.")
 except FileNotFoundError as e:
     print(f"ERRO: Arquivo não encontrado. Certifique-se de executar os scripts 'df-inmet.py' e 'df-nsrdb.py' primeiro.")
@@ -55,28 +57,86 @@ colunas_para_imputar = {
     'pressao_atm_estacao': 'pressao_nsrdb',
     }
 
-for col_inmet, col_nsrdb in colunas_para_imputar.items():
-    # Conta quantos nulos existem ANTES do preenchimento
-    nulos_antes = df_final[col_inmet].isnull().sum()
-    
-    # Preenche os nulos da coluna INMET com os valores da coluna NSRDB
-    df_final[col_inmet] = df_final[col_inmet].fillna(df_final[col_nsrdb])
-    
-    # Conta quantos nulos sobraram DEPOIS
-    nulos_depois = df_final[col_inmet].isnull().sum()
-    
-    print(f"  - Coluna '{col_inmet}': {nulos_antes - nulos_depois} valores preenchidos. ({nulos_depois} nulos restantes)")
+# # === ANÁLISE ESTATÍSTICA DE COMPATIBILIDADE (NOVO BLOCO) ===
+# print("\n--- Análise de Variância e Compatibilidade: INMET (Real) vs NSRDB (Satélite) ---")
+# compatibilidade_stats = []
 
-# Remove as colunas de suporte da NSRDB que já usamos
-colunas_nsrdb_para_remover = [
+# for col_inmet, col_nsrdb in colunas_para_imputar.items():
+#     # 1. Isola apenas os registros onde AMBAS as fontes possuem dados (interseção)
+#     valid_data = df_final[[col_inmet, col_nsrdb]].dropna()
+    
+#     if len(valid_data) > 0:
+#         # 2. Cálculos Estatísticos
+#         # Correlação de Pearson: Mede a linearidade (quanto mais próximo de 1, melhor)
+#         corr = valid_data[col_inmet].corr(valid_data[col_nsrdb])
+        
+#         # Diferença (Erro): INMET - NSRDB
+#         diff = valid_data[col_inmet] - valid_data[col_nsrdb]
+#         bias = diff.mean()      # Viés médio (se satélite subestima ou superestima)
+#         mae = diff.abs().mean() # Erro médio absoluto
+        
+#         # Variância / Desvio Padrão: Mede a dispersão dos dados
+#         std_inmet = valid_data[col_inmet].std()
+#         std_nsrdb = valid_data[col_nsrdb].std()
+        
+#         print(f"Feature: {col_inmet.upper()}")
+#         print(f"  - Correlação: {corr:.4f}")
+#         print(f"  - MAE: {mae:.4f} | Viés: {bias:.4f}")
+#         print(f"  - Desvio Padrão (Variabilidade): INMET={std_inmet:.2f} vs NSRDB={std_nsrdb:.2f}")
+        
+#         compatibilidade_stats.append(
+#             f"Feature: {col_inmet}\n  Correlação: {corr:.4f}\n  MAE: {mae:.4f}\n  StdDev (Real/Sat): {std_inmet:.2f}/{std_nsrdb:.2f}\n"
+#         )
+#     else:
+#         print(f"Feature: {col_inmet} - Sem dados sobrepostos suficientes para análise prévia.")
+
+# # Salva relatório para uso no Contexto
+# with open('data/relatorio_compatibilidade.txt', 'w') as f:
+#     f.write("RELATÓRIO DE COMPATIBILIDADE PARA IMPUTAÇÃO\n")
+#     f.write("Justificativa: As métricas abaixo demonstram a correlação entre dados de solo e satélite.\n")
+#     f.write("-" * 50 + "\n")
+#     f.writelines(compatibilidade_stats)
+# print("--------------------------------------------------------------------------------\n")
+
+# for col_inmet, col_nsrdb in colunas_para_imputar.items():
+#     # Conta quantos nulos existem ANTES do preenchimento
+#     nulos_antes = df_final[col_inmet].isnull().sum()
+    
+#     # Preenche os nulos da coluna INMET com os valores da coluna NSRDB
+#     df_final[col_inmet] = df_final[col_inmet].fillna(df_final[col_nsrdb])
+    
+#     # Conta quantos nulos sobraram DEPOIS
+#     nulos_depois = df_final[col_inmet].isnull().sum()
+    
+#     print(f"  - Coluna '{col_inmet}': {nulos_antes - nulos_depois} valores preenchidos. ({nulos_depois} nulos restantes)")
+
+# # Remove as colunas de suporte da NSRDB que já usamos
+# colunas_nsrdb_para_remover = [
+#     'latitude_nsrdb', 'longitude_nsrdb', 'temp_ar_nsrdb', 
+#     'umidade_rel_nsrdb', 'vento_vel_nsrdb', 'pressao_nsrdb'
+# ]
+# df_final.drop(columns=colunas_nsrdb_para_remover, inplace=True, errors='ignore')
+
+# === LIMPEZA FINAL E ENGENHARIA DE FEATURES ===
+print(f"Linhas antes da limpeza final: {len(df_final)}")
+
+# Remove linhas onde as colunas CRITICAS do INMET são nulas
+cols_criticas_inmet = ['temp_ar', 'umidade_rel', 'vento_vel', 'pressao_atm_estacao']
+df_final.dropna(subset=cols_criticas_inmet, inplace=True)
+
+# Remove as colunas da NSRDB que não são target (já que não vamos mais usá-las para preencher)
+colunas_nsrdb_remover = [
     'latitude_nsrdb', 'longitude_nsrdb', 'temp_ar_nsrdb', 
     'umidade_rel_nsrdb', 'vento_vel_nsrdb', 'pressao_nsrdb'
 ]
-df_final.drop(columns=colunas_nsrdb_para_remover, inplace=True, errors='ignore')
+df_final.drop(columns=colunas_nsrdb_remover, inplace=True, errors='ignore')
+
+print(f"Linhas após limpeza (Apenas dados Reais + Targets): {len(df_final)}")
 
 # Pode haver alguns poucos nulos restantes se a NSRDB também tiver falhas.
 # Usar interpolação para preencher qualquer buraco minúsculo que sobrou.
-df_final.interpolate(method='time', limit_direction='both', inplace=True)
+numeric_cols = df_final.select_dtypes(include=[np.number]).columns
+df_final[numeric_cols] = df_final[numeric_cols].interpolate(method='time', limit_direction='both')
 
 # Remove qualquer linha que ainda possa ter nulos (muito improvável, mas é uma boa prática)
 df_final.dropna(inplace=True)
@@ -103,8 +163,7 @@ print("\nInformações do DataFrame Final e Completo:")
 df_final.info()
 
 # Salva o dataset final, pronto para ser usado pelos modelos
-df_final.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/dataframe.parquet', engine='fastparquet')
-
+df_final.to_parquet('data/dataframe.parquet', engine='fastparquet')
 
 # Separação do dataframe final em conjuntos de treino, validação e teste -------
 
@@ -144,9 +203,10 @@ print(f"Shape de y_val: {y_val.shape}")
 print(f"Shape de X_test: {X_test.shape}")
 print(f"Shape de y_test: {y_test.shape}")
 
-X_train.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/X_train.parquet', engine='fastparquet')
-y_train.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/y_train.parquet', engine='fastparquet')
-X_val.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/X_val.parquet', engine='fastparquet')
-y_val.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/y_val.parquet', engine='fastparquet')
-X_test.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/X_test.parquet', engine='fastparquet')
-y_test.to_parquet('/Users/User/Documents/IA - Solar/solar-ia/data/y_test.parquet', engine='fastparquet')
+# X_train.to_parquet(ABSOLUTE_PATH + '/data/X_train.parquet', engine='fastparquet')
+X_train.to_parquet('data/X_train.parquet', engine='fastparquet')
+y_train.to_parquet('data/y_train.parquet', engine='fastparquet')
+X_val.to_parquet('data/X_val.parquet', engine='fastparquet')
+y_val.to_parquet('data/y_val.parquet', engine='fastparquet')
+X_test.to_parquet('data/X_test.parquet', engine='fastparquet')
+y_test.to_parquet('data/y_test.parquet', engine='fastparquet')

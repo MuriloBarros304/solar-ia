@@ -1,0 +1,19 @@
+RELATÓRIO DE COMPATIBILIDADE PARA IMPUTAÇÃO
+Justificativa: As métricas abaixo demonstram a correlação entre dados de solo e satélite.
+--------------------------------------------------
+Feature: temp_ar
+  Correlação: 0.4527
+  MAE: 3.3634
+  StdDev (Real/Sat): 3.79/4.04
+Feature: umidade_rel
+  Correlação: 0.4976
+  MAE: 15.9109
+  StdDev (Real/Sat): 19.86/19.20
+Feature: vento_vel
+  Correlação: 0.2696
+  MAE: 1.8002
+  StdDev (Real/Sat): 1.75/1.79
+Feature: pressao_atm_estacao
+  Correlação: 0.1914
+  MAE: 6.6272
+  StdDev (Real/Sat): 7.25/2.25

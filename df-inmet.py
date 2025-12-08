@@ -18,7 +18,7 @@ ARQUIVOS_ESTACOES = [
 COORDENADAS_ESTACOES = {
     'A304': {'latitude': -5.83722221, 'longitude': -35.20805555}, # Natal
     'A316': {'latitude': -6.4674999, 'longitude': -37.08499999},  # Caicó
-    'A372': {'latitude': -5.5349999, 'longitude': -36.87222221},  # Macau
+    'A372': {'latitude': -5.5349999, 'longitude': -36.87222221},  # Ipanguaçu
     'A340': {'latitude': -5.6266666, 'longitude': -37.815},       # Apodi
 }
 

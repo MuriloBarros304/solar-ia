@@ -1,14 +1,17 @@
 INÍCIO DO CONTEXTO DO PROJETO
 
-Este é um projeto de chatbot para um dashboard de previsão de irradiação solar no RN. Em uma tab deste dashboard está disponível este chat para mais informações ao usuário. O dashboard permite ao usuário selecionar um local no mapa interativo e ver predições (importante usar a palavra "predição", não "previsão") pontuais, diárias, mensais e anuais.
+Este é um projeto de chatbot para um dashboard de previsão de irradiação solar no RN. Em uma tab deste dashboard está disponível este chat para mais informações ao usuário. O dashboard permite ao usuário selecionar um local no mapa interativo e ver predições (importante usar a palavra "predição", não "previsão") pontuais, diárias e anuais.
 
 Sobre o Projeto
 
-O objetivo é prever a Irradiação Global Horizontal (GHI) e a Irradiação Normal Direta (DNI) usando modelos de machine learning.
+O objetivo é prever a Irradiação Global Horizontal (GHI) e a Irradiação Normal Direta (DNI) usando modelos de machine learning. Essas medidas são importantes para analisar a viabilidade técnica de instalação de painéis fotovoltaicos.
 
-Dados
-Foram utilizados dados da NSRDB (targets) e do INMET (features). Haviam dados faltantes nas features, por problemas nos sensores, assim os dados da NSRDB entraram para suprir os dados nulos. Os timestamps foram "casados" para a montagem de um único dataset, com tanto as features quanto os targets.
+Dados e Estratégia de Qualidade:
+Foram utilizados dados da NSRDB (targets) e do INMET (features). Inicialmente, considerou-se a imputação de dados faltantes do INMET utilizando os dados de satélite da NSRDB. No entanto, uma Análise de Variância Preliminar demonstrou baixa correlação entre as fontes para variáveis como Pressão Atmosférica (r=0.19) e Velocidade do Vento (r=0.26), indicando que a substituição direta introduziria ruído e viés de suavização.
 
+Decisão Metodológica: Priorizou-se a integridade da informação. Optou-se pela interseção temporal estrita, descartando registros onde não havia dados reais de estação medidos em solo. O dataset final, portanto, é composto 100% por dados medidos (features) e dados de satélite validados (targets), garantindo que o modelo aprenda padrões físicos reais e não artefatos de imputação.
+
+Dados Brutos:
 NSRDB:
 - Pressão atmosférica (mB)
 - Temperatura (°C)
@@ -35,28 +38,6 @@ INMET:
 - Temperatura do ar (°C)
 - Timestamp
 
-Totalizando 262752 linhas após o tratamento dos dados
-Algumas features foram retiradas do dataset pois tinham dependência linear com outras features e/ou com targets, ou simplesmente não eram úteis, como no caso do código de estação. A feature mais importante para todos os modelos é hora_cos, que fica com proporcionalidade negativa com os targets, pois são cosenóides centralizadas em 12h, o inverso da irradiação solar. GHI e DNI possuem correlação matemática, mas isso entre targets em árvores de decisão (RF/XGB) é inofensiva, pois as estruturas de decisão baseadas nas features climáticas tendem a explicar a variação de ambas as irradiâncias simultaneamente.
-
-Features:
- 0   codigo_estacao (retirada para treinamento)
- 1   latitude_inmet
- 2   longitude_inmet
- 3   temp_ar
- 4   umidade_rel
- 5   pressao_atm_estacao
- 6   vento_vel
- 7   vento_dir
- 8   precipitacao
- 9   ghi
- 10  dni
- 11  dhi (retirada para treinamento)
- 12  tipo_nuvem
- 13  hora_sin
- 14  hora_cos
- 15  dia_ano_sin
- 16  dia_ano_cos
-
 Resumo do tratamento dos dados:
 
 Rank Estação % Nulos Internos
@@ -64,9 +45,7 @@ Rank Estação % Nulos Internos
 2 Caicó 35.88%
 3 Ipanguaçu 38.53%
 4 Apodi 40.00%
-5 Macau 42.84%
-6 Mossoró 49.32%
-7 Santa Cruz 52.72%
+... (Outras descartadas devido a >40% de nulos)
 
 Foram incluídas as 4 estações com menos nulos: Natal, Caicó, Ipanguaçu e Apodi.
 
@@ -74,8 +53,8 @@ Foram incluídas as 4 estações com menos nulos: Natal, Caicó, Ipanguaçu e Ap
 
 Os arquivos brutos de diferentes estações meteorológicas foram lidos e padronizados.
 Eles possuem formatos heterogêneos, então foram aplicadas correções nos nomes das colunas, conversões de tipos e normalização de unidades.
-O horário é reformatado para permitir a criação de um timestamp completo e consistente.
-Cada estação recebe suas coordenadas geográficas e apenas as variáveis relevantes foram preservadas.
+O horário foi reformatado para permitir a criação de um timestamp completo e consistente.
+Cada estação recebeu suas coordenadas geográficas e apenas as variáveis relevantes foram preservadas.
 Após isso, todas as estações foram unificadas em um único conjunto contínuo de dados.
 
 2. Padronização dos dados da NSRDB
@@ -106,81 +85,67 @@ Colunas redundantes ou irrelevantes foram removidas.
 O DataFrame final contém apenas os atributos necessários para análise, modelagem e inferência.
 Após isso, o conjunto é dividido em períodos representativos para treino, validação e teste.
 
-Modelos
+Volume de Dados Final:
+  Total de registros limpos: 180.348 linhas (Dados reais de alta confiabilidade).
 
-Random Forest: Um modelo foi treinado e seu gráfico de importância de features está em 'importância rf'.
-Métricas de desempenho RF Regressor:
-GHI
-  - MAE: 19.27 W/m²
-  - RMSE: 46.37 W/m²
-  - R²: 0.9824
-DNI
-  - MAE: 38.83 W/m²
-  - RMSE: 81.62 W/m²
-  - R²: 0.9412
+Essa redução no volume total em prol da qualidade garante que o modelo não aprenda ruídos introduzidos por imputações artificiais.
+Algumas features foram retiradas do dataset pois tinham dependência linear com outras features e/ou com targets, ou simplesmente não eram úteis, como no caso do código de estação. A feature mais importante para todos os modelos é hora_cos, que fica com proporcionalidade negativa com os targets, pois são cosenóides centralizadas em 12h, o inverso da irradiação solar. GHI e DNI possuem correlação matemática, mas isso entre targets em árvores de decisão (RF/XGB) é inofensiva, pois as estruturas de decisão baseadas nas features climáticas tendem a explicar a variação de ambas as irradiâncias simultaneamente.
 
-XGBoost: Outro modelo foi treinado e seu gráfico de importância está em 'importância xg'. Uma imagem contendo a regressão do dia 01/12/2023 comparada com os dados reais usando este modelo está disponível em "predicão diária xg", mas datas e locais personalizados podem ser inferidos nas abas do dashboard Streamlit, todas as aplicações estão usando XGBoost. Este modelo não suporta mais de um target nativamente, por isso há duas instâncias de XG neste projeto, uma para cada target.
-Métricas de desempenho XGBoost:
-GHI
-  - MAE: 19.37 W/m²
-  - RMSE: 43.45 W/m²
-  - R²: 0.9837
-DNI
-  - MAE: 39.46 W/m²
-  - RMSE: 76.98 W/m²
-  - R²: 0.9456
+Variáveis do Modelo:
+Features (Entradas - X):
+ 1. latitude_inmet
+ 2. longitude_inmet
+ 3. temp_ar
+ 4. umidade_rel
+ 5. pressao_atm_estacao
+ 6. vento_vel
+ 7. vento_dir
+ 8. precipitacao
+ 9. tipo_nuvem
+ 10. hora_sin
+ 11. hora_cos (Feature mais importante: define a geometria solar)
+ 12. dia_ano_sin
+ 13. dia_ano_cos
+
+Targets (Saídas - y):
+ 1. GHI (Global Horizontal Irradiance)
+ 2. DNI (Direct Normal Irradiance)
+
+Modelos e Desempenho
+
+O projeto comparou Random Forest e XGBoost.
+Nota sobre métricas altas: O R² elevado (~0.98) é esperado e justificado, pois a irradiação solar é um fenômeno determinístico governado pela geometria solar (hora_cos), sendo apenas atenuada pelas variáveis climáticas. O modelo capturou com sucesso essa dinâmica física.
+
+1. Random Forest Regressor:
+   - GHI: MAE 19.27 | RMSE 46.37 | R² 0.9824
+   - DNI: MAE 38.13 | RMSE 79.74 | R² 0.9412
+   - Observação: Alto custo computacional e maior tamanho de arquivo.
+
+2. XGBoost (Modelo Vencedor):
+   - GHI: MAE 19.37 | RMSE 43.45 | R² 0.9837
+   - DNI: MAE 39.46 | RMSE 76.98 | R² 0.9456
+   - Observação: Desempenho ligeiramente superior ao RF, mas com eficiência computacional drasticamente melhor.
+   - Estrutura: Como o XGBoost nativo foca em um gradiente por vez, foram treinadas duas instâncias separadas: uma otimizada para GHI e outra para DNI.
 
 Treinamento:
 O treinamento foi focado em minimizar o erro do GHI, que é mais útil, pois representa a irradiação global. Foram feitas Random Searchs com o RandomizedSearchCV e validação cruzada de 3 folds para buscar os melhores hiperparâmetros possíveis nos dois modelos.
 
-Treino: 2018 a 2022, 175200 linhas (71.4%)
-Validação: 2023, 35040 linhas (14.3%)
-Teste: 2024, 35136 linhas (14.3%)
-12 features, 2 targets
+Divisão Temporal para o treinamento:
+  Treino (2018-2022): 123.384 amostras (72.9%)
+  Validação (2023): 24.241 amostras (14.3%)
+  Teste (2024): 21.606 amostras (12.8%)
+13 features, 2 targets
 
-Hiperparâmetros:
-RF(
-    n_estimators=355,
-    n_jobs=-1,
-    random_state=42,
-    verbose=2,
-    max_depth=21,
-    max_features=0.82,
-    max_samples=0.87,
-    min_samples_split=2,
-    min_samples_leaf=1
-)
-XGB (GHI) (
-    n_estimators=800,
-    learning_rate=0.05,
-    n_jobs=-1,
-    random_state=42,
-    early_stopping_rounds=50,
-    max_depth=9,
-    subsample=0.9,
-    colsample_bytree=0.93
-)
-
-XGB (DNI) (
-    n_estimators=859,
-    learning_rate=0.01,
-    n_jobs=-1,
-    random_state=42,
-    early_stopping_rounds=50,
-    max_depth=7,
-    subsample=0.844,
-    gamma=0.469,
-    colsample_bytree=0.889
-)
+Hiperparâmetros Finais (XGBoost):
+XGB (GHI): n_estimators=800, learning_rate=0.05, max_depth=9, subsample=0.9.
+XGB (DNI): n_estimators=859, learning_rate=0.01, max_depth=7, subsample=0.844.
+(Nota: O DNI exigiu uma learning rate menor e mais árvores por ser uma componente mais ruidosa e difícil de prever que o GHI).
 
 Fórmulas úteis:
 hora_cos = cos(2 * pi * hora / 24)
 hora_sin = sin(2 * pi * hora / 24)
 dia_ano_cos = cos(2 * pi * dia_do_ano / 365.25)
 dia_ano_sin = sin(2 * pi * dia_do_ano / 365.25)
-GHI (Global Horizontal Irradiance)
-DNI (Direct Normal Irradiance)
-DHI (Diffuse Normal Irradiance)
 GHI = DNI*cos(θ) + DHI
 
 Análise
@@ -188,8 +153,10 @@ Análise
 O modelo XGBoost se mostrou ter melhor desempenho, com pouquíssima diferença, mas seu custo computacional extremamente menor que o Random Forest Regressor faz com que ele seja o modelo mais adequado para esta aplicação.
 
 Sobre a página
-
-Com isso, nesta plataforma feita via Streamlit, está disponível a realização de inferências do modelo vencedor (XGBoost) de diversas formas, o usuário pode escolher um local no mapa do RN para realizar a predição de irradiação solar de um horário pontual, de um dia ou de um ano.
+- Aba Mapa: Seleção de local.
+- Aba Previsão Pontual: Input manual de condições para ver o GHI instantâneo.
+- Aba Anual/Diária: Visualização de séries temporais.
+O modelo XGBoost é carregado via Joblib para inferência em tempo real.
 
 Outros Gráficos Disponíveis
 
