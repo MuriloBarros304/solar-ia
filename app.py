@@ -6,8 +6,6 @@ import folium
 import os
 import chat
 from datetime import datetime, time
-from Fuzzy.solar_condition_mamdani import avaliar_condicao_solar, plot_var_com_valor, interpretar_condicao_fuzzy, hora_sin, hora_cos, tipo_nuvem, temp_ar, condicao_solar, mostrar_grafico_condicao_solar
-from Fuzzy.solar_condition_sugeno import avaliar_condicao_solar_sugeno
 
 from streamlit_folium import st_folium
 
@@ -80,8 +78,8 @@ user_cloud_type = st.sidebar.slider(
 
 st.title("☀️ Análise de Irradiação Solar no RN")
 
-tab_mapa, tab_pontual, tab_diaria, tab_anual, tab_chat, aba_fuzzy = st.tabs([
-    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual", "Chatbot", "Sistema Fuzzy"
+tab_mapa, tab_pontual, tab_diaria, tab_anual, tab_chat = st.tabs([
+    "Mapa Interativo", "Regressão Pontual", "Regressão Diária", "Análise Anual", "Chatbot"
 ])
 
 # ==============================================================================
@@ -231,22 +229,6 @@ with tab_pontual:
             st.metric(label="GHI Predito", value=f"{ghi_prediction:.2f} W/m²")
         with metric2:
             st.metric(label="DNI Predito", value=f"{dni_prediction:.2f} W/m²")
-
-        with st.expander("Ver Detalhes da Condição Solar (Lógica Fuzzy)"):
-            try:
-                condicao_valor = avaliar_condicao_solar(input_data['hora_sin'], input_data['hora_cos'], input_data['tipo_nuvem'], input_data['temp_ar'])
-                mostrar_grafico_condicao_solar()
-                
-                descricao = interpretar_condicao_fuzzy(condicao_valor)
-
-                if condicao_valor < 40:
-                     st.warning(descricao)
-                elif condicao_valor < 70:
-                      st.info(descricao)
-                else:
-                    st.success(descricao)
-            except Exception as e:
-                st.error(f"Erro ao avaliar condição solar: {e}")
    
     # O explorador de dados reais continua fora do expander, o que está correto.
     st.markdown("---")
@@ -560,8 +542,8 @@ with tab_chat:
                         st.warning(f"Imagem {img_path} não encontrada no servidor.")
 
     with st.form(key="chat_form", clear_on_submit=True):
-            user_prompt = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual modelo teve o menor erro?", key="chat_input")
-            submit_button = st.form_submit_button("Enviar")
+        user_prompt = st.text_input("Faça sua pergunta:", placeholder="Ex: Qual modelo teve o menor erro?", key="chat_input")
+        submit_button = st.form_submit_button("Enviar")
 
     if submit_button and user_prompt:
         with st.spinner("Analisando sua pergunta e buscando gráficos..."):
@@ -583,63 +565,3 @@ with tab_chat:
                 })
         
         st.rerun()
-
-# ----------------------------------------------------------
-# ABA 5 — SISTEMA FUZZY COMPLETO
-# ----------------------------------------------------------
-with aba_fuzzy:
-    
-    st.header("🔆 Sistema Fuzzy de Avaliação Solar")
-
-    st.subheader("Entradas do Sistema Fuzzy")
-
-    # ------------------------------------------------------
-    #                     INPUTS DO USUÁRIO
-    # ------------------------------------------------------
-    col1, col2 = st.columns(2)
-
-    with col1:
-        h_sin = st.slider("hora_sin", -1.0, 1.0, 0.0, 0.01)
-        h_cos = st.slider("hora_cos", -1.0, 1.0, 0.0, 0.01)
-
-    with col2:
-        nuvem = st.slider("tipo_nuvem", 0.0, 10.0, 5.0, 0.1)
-        temp = st.slider("temperatura do ar (°C)", 0.0, 40.0, 25.0, 0.1)
-
-    # ------------------------------------------------------
-    #               EXECUTA O MODELO FUZZY
-    # ------------------------------------------------------
-    resultado = avaliar_condicao_solar(h_sin, h_cos, nuvem, temp)
-
-    st.subheader("Resultado da Defuzzificação")
-    st.metric("Valor Crisp", f"{resultado:.2f}")
-
-    st.subheader("Interpretação da Condição Solar")
-    st.write(interpretar_condicao_fuzzy(resultado))
-
-    st.markdown("---")
-
-    # ------------------------------------------------------
-    #         SEÇÃO DE GRÁFICOS (FUNÇÕES DE PERTINÊNCIA)
-    # ------------------------------------------------------
-    st.subheader("📈 Visualização das Funções de Pertinência")
-
-    opcao = st.selectbox(
-        "Escolha uma variável fuzzy para visualizar",
-        ("hora_sin", "hora_cos", "tipo_nuvem", "temp_ar", "condicao_solar")
-    )
-
-    if opcao == "hora_sin":
-        st.pyplot(plot_var_com_valor(hora_sin, h_sin))
-
-    elif opcao == "hora_cos":
-        st.pyplot(plot_var_com_valor(hora_cos, h_cos))
-
-    elif opcao == "tipo_nuvem":
-        st.pyplot(plot_var_com_valor(tipo_nuvem, nuvem))
-
-    elif opcao == "temp_ar":
-        st.pyplot(plot_var_com_valor(temp_ar, temp))
-
-    elif opcao == "condicao_solar":
-        st.pyplot(plot_var_com_valor(condicao_solar, resultado))
