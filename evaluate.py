@@ -102,7 +102,7 @@ def main():
     print("Gerando previsões no conjunto de teste...")
     pred_rf_raw = rf_model.predict(X_test)
     pred_rf = pd.DataFrame(pred_rf_raw, index=y_test.index, columns=y_test.columns)
-    pred_rf.to_parquet('data/pred_rf_val.parquet') # 
+    pred_rf.to_parquet('data/pred_rf_test.parquet')
 
     pred_xgb_ghi = xgb_model_ghi.predict(X_test)
     pred_xgb_dni = xgb_model_dni.predict(X_test)
