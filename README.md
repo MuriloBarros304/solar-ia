@@ -19,7 +19,7 @@ Foram utilizadas duas fontes primárias de dados para compor o dataset final:
     Foram usadas as quatro estações do RN com mais dados de 2018 a 2024:
     - Natal
     - Caicó
-    - Macau
+    - Ipanguaçu
     - Apodi
 
 * **National Solar Radiation Database (NSRDB):**
@@ -43,10 +43,6 @@ Os dados brutos de ambas as fontes passaram por um pipeline rigoroso de tratamen
     * Identificados por meio de um limiar (`GHI < 10 W/m²` durante o dia).
     * Marcados como valores nulos (`NaN`).
     * Preenchidos utilizando **interpolação temporal** (`method='time'`), resultando em uma série temporal mais suave e fisicamente coerente.
-
-4.  **Imputação de Dados Faltantes (Dados Meteorológicos):** O dataset do INMET apresentava uma quantidade significativa de dados faltantes devido a falhas nos sensores. Para preencher essas lacunas, foi utilizada uma estratégia de fusão de dados: os valores nulos nas colunas de `temperatura`, `umidade` e `vento` do INMET foram preenchidos com os valores correspondentes do dataset da NSRDB, que serve como uma fonte modelada de alta qualidade.
-
-5.  **Limpeza Final:** Após a fusão e imputação, uma passada final de interpolação e remoção de nulos (`dropna`) foi aplicada para garantir um dataset 100% completo e pronto para a próxima fase.
 
 O resultado deste processo é um DataFrame único e limpo, alinhado no tempo, com os dados meteorológicos do INMET já corrigidos e os dados de irradiação da NSRDB servindo como alvo.
 
@@ -148,67 +144,6 @@ Ambos os modelos concordam de forma esmagadora sobre as features mais preditivas
 
 A alta importância dessas features projetadas valida o sucesso da etapa de Engenharia de Features.
 
-## Interpretação Fuzzy da Condição Solar
-
-Após o processo de previsão quantitativa do **GHI (Global Horizontal Irradiance)** realizado pelo modelo de *Machine Learning*, foi implementado um **módulo de Lógica Fuzzy** para realizar a **avaliação qualitativa da condição solar**.  
-Essa abordagem tem como objetivo traduzir valores numéricos de irradiância (em W/m²) em classificações linguísticas compreensíveis, como *“Ruim”*, *“Boa”* ou *“Excelente”*, levando em conta **as transições suaves entre faixas de radiação**.
-
----
-
-### Conceito
-
-A **Lógica Fuzzy** permite representar o raciocínio humano de forma gradual, em vez de rígida.  
-Enquanto um modelo clássico classificaria, por exemplo, GHI = 600 W/m² como “médio” de forma binária, o sistema fuzzy reconhece que esse valor pode ser **parte “médio” e parte “alto”** ao mesmo tempo, com diferentes graus de pertinência.
-
-Isso resulta em uma avaliação mais **realista e contínua** da condição solar.
-
----
-
-### Implementação Técnica
-
-A implementação foi feita utilizando a biblioteca `scikit-fuzzy`, com as seguintes variáveis:
-
-#### 🔹 Variável de Entrada: `GHI`
-Representa a irradiância solar prevista pelo modelo de *Machine Learning*.
-
-| Classificação | Intervalo aproximado (W/m²) | Função de pertinência |
-| :------------- | :--------------------------: | :-------------------- |
-| **Baixa** | 0 – 400 | Triangular `[0, 0, 400]` |
-| **Média** | 300 – 800 | Triangular `[300, 600, 800]` |
-| **Alta** | 700 – 1000 | Triangular `[700, 1000, 1000]` |
-
-#### 🔹 Variável de Saída: `Condição Solar`
-Traduz o valor de entrada fuzzy em uma escala linguística de interpretação:
-
-| Classificação | Intervalo de saída | Função de pertinência |
-| :------------- | :----------------: | :-------------------- |
-| **Ruim** | 0 – 40 | Triangular `[0, 0, 40]` |
-| **Boa** | 30 – 80 | Triangular `[30, 60, 80]` |
-| **Excelente** | 70 – 100 | Triangular `[70, 100, 100]` |
-
-#### 🔹 Regras Fuzzy Definidas
-```python
-Rule(ghi['baixa'] → condicao['ruim'])
-Rule(ghi['media'] → condicao['boa'])
-Rule(ghi['alta'] → condicao['excelente'])
-```
-
-##### Essas regras descrevem o raciocínio linguístico usado pelo sistema:
-* Se o GHI é baixo, então a condição solar é ruim;
-* se o GHI é médio, então a condição solar é boa;
-* se o GHI é alto, então a condição solar é excelente.
-
-#### Interpretação Linguística Personalizada:
-| Faixa de saída | Interpretação                                   |
-| :------------- | :---------------------------------------------- |
-| 0–20           | “Muito ruim (radiação muito baixa)”             |
-| 20–40          | “Ruim (baixa radiação)”                         |
-| 40–50          | “Não muito boa (transição para média radiação)” |
-| 50–60          | “Razoável (radiação média)”                     |
-| 60–70          | “Boa (tendendo a alta radiação)”                |
-| 70–85          | “Muito boa (alta radiação)”                     |
-| 85–100         | “Excelente (radiação muito alta)”               |
-
 ### 4. Conclusão dos Resultados
 
-Com base na análise quantitativa e qualitativa, o modelo **Random Forest Regressor Otimizado** é declarado o campeão do benchmark, apresentando o menor erro e o melhor ajuste aos dados de teste. O projeto demonstrou com sucesso a viabilidade de prever a irradiação solar com alta precisão utilizando dados meteorológicos locais e uma robusta engenharia de features. Mesmo assim, o **XGBoost** também se mostrou um modelo excelente para a aplicação, sendo um forte concorrente. Com a adição da Lógica Fuzzy, o sistema passou a fornecer interpretações mais realistas e humanas da condição solar, aproximando a análise técnica do comportamento esperado por especialistas e usuários. Devido ao grande espaço de armazenamento requerido pelos arquivos de treinamento do Random Forest, a interface streamlit está usando o XGBoost para fazer as predições.
+Com base na análise quantitativa e qualitativa, o modelo **XGBoost** é declarado o campeão do benchmark, apresentando o menor erro e o melhor ajuste aos dados de teste. O projeto demonstrou com sucesso a viabilidade de prever a irradiação solar com alta precisão utilizando dados meteorológicos locais e uma robusta engenharia de features. Mesmo assim, o **Random Forest Regressor** também se mostrou um modelo excelente para a aplicação, sendo um forte concorrente.

@@ -152,6 +152,7 @@ with tab_mapa:
     st.markdown("""
     Esta plataforma foi desenvolvida para fornecer previsões precisas de irradiação geral horizontal (GHI) e irradiação direta normal (DNI) no estado do Rio Grande do Norte, Brasil. Utilizando um modelo de XGBoost treinado com dados históricos de estações meteorológicas locais, o sistema permite simulações personalizadas com base em condições climáticas específicas e localização geográfica.
     """)
+    st.markdown("[Repositório do Projeto](https://github.com/MuriloBarros304/solar-ia)")
 
 # ==============================================================================
 # ABA 2: PREVISÃO PONTUAL
@@ -170,17 +171,17 @@ with tab_pontual:
         with c2:
             # Substituímos o time_input por um slider de hora, restrito ao período diurno
             hora_int = st.slider("Hora da Predição (HH)",
-                                 min_value=7,
-                                 max_value=17,
-                                 value=12, # Padrão
-                                 step=1,
-                                 format="%02d") # Formato de exibição
+                                min_value=7,
+                                max_value=17,
+                                value=12, # Padrão
+                                step=1,
+                                format="%02d") # Formato de exibição
             minute_int = st.slider("Minutos da Predição (MM)",
-                                   min_value=0,
-                                   max_value=55,
-                                   value=0, # Padrão
-                                   step=5,
-                                   format="%02d") # Formato de exibição
+                                    min_value=0,
+                                    max_value=55,
+                                    value=0, # Padrão
+                                    step=5,
+                                    format="%02d") # Formato de exibição
 
         # Converte a hora (int) de volta para um objeto 'time' para o resto do script
         hora = time(hour=hora_int, minute=minute_int)
@@ -563,5 +564,6 @@ with tab_chat:
                     "answer": error_message,
                     "images": []
                 })
+
         
         st.rerun()
